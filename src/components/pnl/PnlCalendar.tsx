@@ -604,7 +604,98 @@ const BENCH_COLORS = [
 
 const AUTO_INDEXES = ["SPY", "QQQ", "NASDAQ", "DOW", "RUSSELL"];
 
-/** A little adventurer that runs along the P&L line, then celebrates at the end. */
+/** A hand-drawn minion: jogs while `run`, throws its hands up with happy tears while `party`. */
+function Minion({ phase }: { phase: "run" | "party" }) {
+  const party = phase === "party";
+  return (
+    <svg
+      viewBox="0 0 40 58"
+      width="30"
+      height="44"
+      className={cn("minion", party && "is-party")}
+      aria-hidden
+    >
+      <style>{`
+        .minion .leg { transform-box: fill-box; transform-origin: 50% 8%; }
+        .minion .arm { transform-box: fill-box; transform-origin: 50% 10%; }
+        .minion:not(.is-party) .leg-a { animation: mn-leg .42s linear infinite; }
+        .minion:not(.is-party) .leg-b { animation: mn-leg .42s linear infinite reverse; }
+        .minion:not(.is-party) .arm-a { animation: mn-arm .42s linear infinite reverse; }
+        .minion:not(.is-party) .arm-b { animation: mn-arm .42s linear infinite; }
+        .minion:not(.is-party) .stage { animation: mn-bob .42s linear infinite; }
+        .minion.is-party .arm-a { animation: mn-raise-l .55s ease-in-out infinite; }
+        .minion.is-party .arm-b { animation: mn-raise-r .55s ease-in-out infinite; }
+        .minion.is-party .stage { animation: mn-cheer .55s ease-in-out infinite; }
+        .minion .tear { animation: mn-tear .9s ease-in infinite; }
+        .minion .tear.t2 { animation-delay: .45s; }
+        @keyframes mn-leg { 0%,100%{transform:rotate(22deg)} 50%{transform:rotate(-22deg)} }
+        @keyframes mn-arm { 0%,100%{transform:rotate(-28deg)} 50%{transform:rotate(28deg)} }
+        @keyframes mn-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-1px)} }
+        @keyframes mn-raise-l { 0%,100%{transform:rotate(-142deg)} 50%{transform:rotate(-170deg)} }
+        @keyframes mn-raise-r { 0%,100%{transform:rotate(142deg)} 50%{transform:rotate(170deg)} }
+        @keyframes mn-cheer { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2.5px)} }
+        @keyframes mn-tear { 0%{transform:translateY(0);opacity:0} 20%{opacity:.9} 100%{transform:translateY(15px);opacity:0} }
+      `}</style>
+      <g className="stage">
+        <g className="leg leg-a">
+          <rect x="14" y="40" width="5" height="14" rx="2.5" fill="#20416a" />
+          <rect x="12" y="51" width="8" height="4" rx="2" fill="#3b322c" />
+        </g>
+        <g className="leg leg-b">
+          <rect x="21" y="40" width="5" height="14" rx="2.5" fill="#20416a" />
+          <rect x="21" y="51" width="8" height="4" rx="2" fill="#3b322c" />
+        </g>
+        <g className="arm arm-a">
+          <rect x="5" y="22" width="4.5" height="13" rx="2.25" fill="#f7d038" />
+          <circle cx="7.2" cy="35" r="2.6" fill="#3b322c" />
+        </g>
+        <g className="arm arm-b">
+          <rect x="30.5" y="22" width="4.5" height="13" rx="2.25" fill="#f7d038" />
+          <circle cx="32.8" cy="35" r="2.6" fill="#3b322c" />
+        </g>
+        <rect x="9" y="6" width="22" height="38" rx="11" fill="#f7d038" />
+        <path d="M11 31h18v9a4 4 0 0 1-4 4H15a4 4 0 0 1-4-4z" fill="#2f5d8a" />
+        <rect x="12" y="16" width="3" height="16" fill="#2f5d8a" />
+        <rect x="25" y="16" width="3" height="16" fill="#2f5d8a" />
+        <rect x="9" y="17" width="22" height="2.6" fill="#3b322c" />
+        <circle cx="20" cy="19" r="8" fill="#c9ccce" />
+        <circle cx="20" cy="19" r="5.2" fill="#fff" />
+        <circle cx={party ? 20 : 21.4} cy="19" r="2.6" fill="#3b322c" />
+        {party ? (
+          <path
+            d="M16 26q4 5 8 0"
+            stroke="#3b322c"
+            strokeWidth="1.7"
+            fill="none"
+            strokeLinecap="round"
+          />
+        ) : (
+          <path
+            d="M17 27q3 2 6 0"
+            stroke="#3b322c"
+            strokeWidth="1.4"
+            fill="none"
+            strokeLinecap="round"
+          />
+        )}
+        <path
+          d="M15 6l-1-4M20 5v-4M25 6l1-4"
+          stroke="#3b322c"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+        {party && (
+          <g fill="#7ec8ff">
+            <ellipse className="tear t1" cx="12.5" cy="25" rx="1.6" ry="2.1" />
+            <ellipse className="tear t2" cx="27.5" cy="25" rx="1.6" ry="2.1" />
+          </g>
+        )}
+      </g>
+    </svg>
+  );
+}
+
+/** The minion runs along the P&L line, then celebrates at the end. */
 function LineRunner({ series }: { series: { cum: number }[] }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [phase, setPhase] = useState<"run" | "party">("run");
@@ -620,15 +711,15 @@ function LineRunner({ series }: { series: { cum: number }[] }) {
     const frames: Keyframe[] = series.map((p, i) => {
       const prev = series[Math.max(0, i - 1)]!;
       const slope = Math.atan2((p.cum - prev.cum) / range, 6 / n) * (180 / Math.PI);
-      const deg = Math.max(-32, Math.min(32, slope));
+      const deg = Math.max(-24, Math.min(24, slope));
       return {
         offset: i / n,
         left: `${(i / n) * 100}%`,
         bottom: `${((p.cum - min) / range) * 100}%`,
-        transform: `translate(-50%, 50%) rotate(${-deg}deg) scaleX(-1)`,
+        transform: `translate(-50%, 50%) rotate(${-deg}deg)`,
       };
     });
-    const run = el.animate(frames, { duration: 2600, easing: "ease-in-out", fill: "forwards" });
+    const run = el.animate(frames, { duration: 3600, easing: "ease-in-out", fill: "forwards" });
     run.onfinish = () => {
       const last = frames.at(-1)!;
       el.style.left = String(last["left"]);
@@ -649,10 +740,10 @@ function LineRunner({ series }: { series: { cum: number }[] }) {
     const jump = el.animate(
       [
         { transform: "translate(-50%,50%) translateY(0) scale(1)" },
-        { transform: "translate(-50%,50%) translateY(-16px) scale(1.15)", offset: 0.5 },
+        { transform: "translate(-50%,50%) translateY(-12px) scale(1.12)", offset: 0.5 },
         { transform: "translate(-50%,50%) translateY(0) scale(1)" },
       ],
-      { duration: 620, iterations: Infinity, easing: "cubic-bezier(.3,-0.2,.5,1.4)" },
+      { duration: 720, iterations: Infinity, easing: "cubic-bezier(.3,-0.2,.5,1.4)" },
     );
     return () => jump.cancel();
   }, [phase]);
@@ -661,9 +752,9 @@ function LineRunner({ series }: { series: { cum: number }[] }) {
     <span
       ref={ref}
       aria-hidden
-      className="pointer-events-none absolute bottom-0 left-0 text-lg will-change-transform"
+      className="pointer-events-none absolute bottom-0 left-0 will-change-transform"
     >
-      {phase === "party" ? "🙌" : "🏃"}
+      <Minion phase={phase} />
     </span>
   );
 }
