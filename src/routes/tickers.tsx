@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronRight, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDataset } from "@/lib/pnlStore";
 import { KindBadge, Stat, TrendArrow } from "@/components/pnl/shared";
@@ -25,11 +25,12 @@ export const Route = createFileRoute("/tickers")({
 });
 
 type SortKey = "pnl" | "name" | "volume";
+type SortDir = "asc" | "desc";
 
-const SORTS: { key: SortKey; label: string }[] = [
-  { key: "pnl", label: "P&L" },
-  { key: "name", label: "Name" },
-  { key: "volume", label: "Volume" },
+const SORTS: { key: SortKey; label: string; defaultDir: SortDir }[] = [
+  { key: "pnl", label: "P&L", defaultDir: "desc" },
+  { key: "name", label: "Name", defaultDir: "asc" },
+  { key: "volume", label: "Volume", defaultDir: "desc" },
 ];
 
 function groupVolume(g: SymbolGroup) {
@@ -44,7 +45,16 @@ function TickersPage() {
   const data = useDataset();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("pnl");
+  const [dir, setDir] = useState<SortDir>("desc");
   const [open, setOpen] = useState<Set<string>>(() => new Set());
+
+  const pickSort = (s: (typeof SORTS)[number]) => {
+    if (s.key === sort) setDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSort(s.key);
+      setDir(s.defaultDir);
+    }
+  };
 
   const toggle = (symbol: string) =>
     setOpen((prev) => {
@@ -67,10 +77,11 @@ function TickersPage() {
     const filtered = q ? groups.filter((g) => g.symbol.includes(q)) : groups;
     const sorted = [...filtered];
     if (sort === "name") sorted.sort((a, b) => a.symbol.localeCompare(b.symbol));
-    else if (sort === "volume") sorted.sort((a, b) => groupVolume(b) - groupVolume(a));
-    else sorted.sort((a, b) => b.pnl - a.pnl);
+    else if (sort === "volume") sorted.sort((a, b) => groupVolume(a) - groupVolume(b));
+    else sorted.sort((a, b) => a.pnl - b.pnl);
+    if (dir === "desc") sorted.reverse();
     return sorted;
-  }, [groups, query, sort]);
+  }, [groups, query, sort, dir]);
 
   return (
     <main className="min-h-[calc(100dvh-3.5rem)] bg-background text-foreground">
@@ -108,20 +119,35 @@ function TickersPage() {
                 />
               </div>
               <div className="flex items-center gap-1 rounded-lg bg-card p-1">
-                {SORTS.map((s) => (
-                  <button
-                    key={s.key}
-                    onClick={() => setSort(s.key)}
-                    className={cn(
-                      "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                      sort === s.key
-                        ? "bg-secondary text-foreground"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {s.label}
-                  </button>
-                ))}
+                {SORTS.map((s) => {
+                  const active = sort === s.key;
+                  return (
+                    <button
+                      key={s.key}
+                      onClick={() => pickSort(s)}
+                      aria-pressed={active}
+                      title={
+                        active
+                          ? `Sorted by ${s.label} ${dir === "asc" ? "ascending" : "descending"} — click to reverse`
+                          : `Sort by ${s.label}`
+                      }
+                      className={cn(
+                        "flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                        active
+                          ? "bg-secondary text-foreground"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {s.label}
+                      {active &&
+                        (dir === "asc" ? (
+                          <ArrowUp className="size-3" />
+                        ) : (
+                          <ArrowDown className="size-3" />
+                        ))}
+                    </button>
+                  );
+                })}
               </div>
               <span className="text-xs text-muted-foreground">
                 {visible.length} of {groups.length} symbols
