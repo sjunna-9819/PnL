@@ -177,17 +177,20 @@ The calendar page itself has no header — it opens straight on the drop zone or
 **`/` — PnlCalendar**
 - No page header. Empty state = a drag-and-drop zone that names the supported brokers and
   offers **Load demo data**; import itself is in the nav bar.
-- Month navigation with a **This month** shortcut (shown when off the current month); the
-  current date gets a ring; each day cell tinted `profit-surface` / `loss-surface`, showing
-  net P&L and trade count.
-- Weekly P&L total in a right-hand column of the grid (hidden below `md`).
-- Month stats: Total P&L, Commissions, **Green days** (% of trading days that closed
-  positive), Best day, Worst day, Avg P&L / trade (month P&L ÷ closed trades), Avg P&L / day
-  (month P&L ÷ trading days), Avg P&L / contract (month P&L ÷ contracts+shares closed).
+- On `lg+` the whole page is locked to the viewport (`h-[calc(100dvh-3.5rem)]`, `overflow-hidden`);
+  the calendar grid flex-fills the leftover height so there is no page scroll.
+- **Mon–Fri only** (5-column grid, weekends skipped). Month navigation with a **This month**
+  shortcut; the current date gets a ring; the selected day gets a full-opacity tint + accent ring.
+- Month stats: Total P&L, Commissions, **Green days** (% of trading days that closed positive),
+  Best day, Worst day, Avg / trade, Avg / day, Avg / contract — one compact row.
+- **Insights** panel under the calendar (left column): all-time Net P&L, Trades, Win rate,
+  Payoff, Profit factor, Expectancy, Max drawdown + a letter-grade chip linking to `/blog`.
+  Numbers come from `analyze()` in `src/lib/blog.ts`.
 - Commission inputs live in a gear **popover** in the nav bar; "Clear" (also in the nav) prompts
   an **alert dialog** before wiping the dataset.
 - Day detail (date, net P&L with gross/fee line, per-instrument rows, **STILL OPEN**
-  section) renders in the right sidebar on `lg+` and as a bottom **drawer** on mobile.
+  section) renders in the right sidebar on `lg+` (matches the calendar's height, scrolls
+  internally) and as a bottom **drawer** on mobile.
 
 **`/tickers` — Ticker P&L**
 - Stats: Total P&L, Commissions, Green symbols, Best symbol.
