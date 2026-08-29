@@ -1,29 +1,26 @@
-# Welcome to your Lovable project
+# PnL Calendar
 
-This project was built with [Lovable](https://lovable.dev).
+A browser-only trading journal. Import broker CSV statements (built and tested against
+Thinkorswim / Schwab "Account Statement" exports) and get a monthly/yearly calendar of daily
+P&L, per-ticker breakdowns, an equity curve, and an automated review of your trading. No
+backend, no login — everything is parsed in the browser and persisted in `localStorage`.
 
-## Build with Lovable
-
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+See `PNL_CALENDAR_PROJECT.md` for the full architecture write-up.
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Needs Node.js.
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+npm install
+npm run dev      # http://localhost:8080
+npm run build    # production build (Nitro node-server) → .output
+npm run preview  # serve the production build
+npm run lint
 ```
 
 ## Built with
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+- TanStack Start (React 19, TanStack Router file routes)
+- Vite, Tailwind CSS v4, shadcn/ui
+- `papaparse` for CSV parsing

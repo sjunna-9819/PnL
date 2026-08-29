@@ -250,8 +250,8 @@ The calendar page itself has no header — it opens straight on the drop zone or
   `pnl.ts`. If sections differ, adjust `sections()` / `isOrderHistory()`.
 - **Per-symbol commission overrides**: extend `CommissionSettings` with a map and branch inside
   `fillFee()` — every consumer already reads fees from `feesByKey` / `feesByDate`.
-- **Multi-device sync / accounts**: replace `pnlStore.ts` with a Lovable Cloud table storing
-  raw fills per user; `buildDataset` stays untouched.
+- **Multi-device sync / accounts**: replace `pnlStore.ts` with a backend table storing raw
+  fills per user; `buildDataset` stays untouched.
 - **Unrealized P&L**: fetch marks for `openPositions` and add a mark-to-market column.
 
 ---
