@@ -238,7 +238,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
           )}
 
           <div className="mt-3 grid gap-4 lg:grid-cols-[1fr_340px]">
-            <div className="rounded-xl bg-card p-2 sm:p-3">
+            <div className="rounded-xl bg-card p-2 pb-48 sm:p-3 sm:pb-48">
               <div className="flex gap-1.5 pb-1.5">
                 <div className="grid flex-1 grid-cols-7 gap-1.5 text-center text-[11px] font-medium tracking-wider text-muted-foreground">
                   {WEEKDAYS.map((d) => (
