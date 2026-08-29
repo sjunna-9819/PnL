@@ -12,7 +12,9 @@ import {
 import { toast } from "sonner";
 import {
   Area,
+  Bar,
   CartesianGrid,
+  Cell,
   ComposedChart,
   Line,
   ReferenceLine,
@@ -605,6 +607,7 @@ const BENCH_COLORS = [
 function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   const benchmarks = useBenchmarks();
   const [shown, setShown] = useState<string[]>([]);
+  const [chart, setChart] = useState<"line" | "bars">("line");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const series = useMemo(() => equitySeries(totals), [totals]);
@@ -619,9 +622,10 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
       bases[n] = (b.find((p) => p.date >= firstDate) ?? b[0])?.close ?? 0;
     }
     return series.map((s) => {
-      const row: { label: string; cum: number; [k: string]: number | string } = {
+      const row: { label: string; cum: number; day: number; [k: string]: number | string } = {
         label: prettyDate(s.date).replace(/,\s*\d{4}$/, ""),
         cum: Math.round(s.cum),
+        day: Math.round(s.day),
       };
       for (const n of active) {
         const b = benchmarks[n]!;
@@ -643,6 +647,22 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   return (
     <div className="text-muted-foreground">
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
+        <div className="mr-1 flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5">
+          {(["line", "bars"] as const).map((c) => (
+            <button
+              key={c}
+              onClick={() => setChart(c)}
+              className={cn(
+                "rounded px-2 py-0.5 text-[11px] font-medium capitalize transition-colors",
+                chart === c
+                  ? "bg-card text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
         <span className="text-[10px] uppercase tracking-wider">Compare vs</span>
         {Object.keys(benchmarks).map((name) => {
           const on = shown.includes(name);
@@ -754,17 +774,29 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
               }}
               labelStyle={{ color: "var(--color-muted-foreground)" }}
               formatter={(v: number, key: string) =>
-                key === "cum" ? [fmtMoney(v), "Your P&L"] : [`${v > 0 ? "+" : ""}${v}%`, key]
+                key === "cum"
+                  ? [fmtMoney(v), "Cumulative P&L"]
+                  : key === "day"
+                    ? [fmtMoney(v), "Day P&L"]
+                    : [`${v > 0 ? "+" : ""}${v}%`, key]
               }
             />
-            <Area
-              yAxisId="pnl"
-              type="monotone"
-              dataKey="cum"
-              stroke={stroke}
-              strokeWidth={2}
-              fill="url(#equity-full-fill)"
-            />
+            {chart === "line" ? (
+              <Area
+                yAxisId="pnl"
+                type="monotone"
+                dataKey="cum"
+                stroke={stroke}
+                strokeWidth={2}
+                fill="url(#equity-full-fill)"
+              />
+            ) : (
+              <Bar yAxisId="pnl" dataKey="day" radius={[2, 2, 0, 0]}>
+                {rows.map((r, i) => (
+                  <Cell key={i} fill={r.day >= 0 ? "var(--color-profit)" : "var(--color-loss)"} />
+                ))}
+              </Bar>
+            )}
             {active.map((name, i) => (
               <Line
                 key={name}
