@@ -189,10 +189,11 @@ wordmark links home, and three tabs — **Calendar** (`/`), **Ticker P/L** (`/ti
 
 **`/tickers` — Ticker P&L**
 - Stats: Total P&L, Commissions, Green symbols, Best symbol.
-- **Symbol filter** + sort toggle (P&L / Name / Volume). Each symbol heading links to `/`
-  with `?day=<first trading day>` so the calendar jumps there (index route
-  `validateSearch`). Groups expand into individual contracts with badge, net P&L, quantity,
-  days traded, W/L, carried-in and remaining open size.
+- A collapsed **row list** — symbol, contract count, net P&L — one row per symbol. Click a
+  row to expand an accordion panel with the per-contract breakdown (badge, net P&L, quantity,
+  days traded, W/L, carried-in, remaining open size) and a "View on calendar →" link that
+  jumps to `/?day=<first trading day>` (index route `validateSearch`).
+- **Symbol filter** + sort toggle (P&L / Name / Volume) above the list.
 
 **`/blog` — Trading journal (the "agent")**
 - `src/lib/blog.ts` is a **pure heuristics engine**, no network / no model. `analyze(data)`
