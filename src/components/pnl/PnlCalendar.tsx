@@ -604,6 +604,8 @@ const BENCH_COLORS = [
   "var(--color-chart-5)",
 ];
 
+const AUTO_INDEXES = ["SPY", "QQQ", "NASDAQ"];
+
 /** Full daily equity chart + index comparison, shown in the slide-up drawer. */
 function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   const benchmarks = useBenchmarks();
@@ -611,6 +613,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   const [chart, setChart] = useState<"line" | "bars">("line");
   const [fetching, setFetching] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const inFlight = useRef(false);
 
   const series = useMemo(() => equitySeries(totals), [totals]);
   const firstDate = series[0]?.date ?? "";
@@ -618,8 +621,9 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
 
   const active = shown.filter((n) => (benchmarks[n]?.length ?? 0) > 1);
 
-  async function pull(name: string) {
-    if (fetching) return;
+  async function pull(name: string, silent = false) {
+    if (inFlight.current) return false;
+    inFlight.current = true;
     setFetching(name);
     try {
       const pts = await fetchIndexHistory({
@@ -628,18 +632,51 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
       if (pts.length < 2) throw new Error("no data returned");
       setBenchmark(name, pts);
       setShown((s) => (s.includes(name) ? s : [...s, name]));
-      toast.success(`${name} · ${pts.length} days from Yahoo`);
+      if (!silent) toast.success(`${name} · ${pts.length} days from Yahoo`);
+      return true;
     } catch (err) {
-      toast.error(`Couldn't fetch ${name}`, {
-        description:
-          err instanceof Error
-            ? err.message
-            : "Needs the app served by a server (not a static host).",
-      });
+      if (!silent) {
+        toast.error(`Couldn't fetch ${name}`, {
+          description:
+            err instanceof Error
+              ? err.message
+              : "Needs the app served by a server (not a static host).",
+        });
+      }
+      return false;
     } finally {
+      inFlight.current = false;
       setFetching(null);
     }
   }
+
+  // On open, pull the default indexes from Yahoo (uses the cache when fresh).
+  useEffect(() => {
+    if (!firstDate) return;
+    let cancelled = false;
+    (async () => {
+      let ok = 0;
+      let attempted = 0;
+      for (const name of AUTO_INDEXES) {
+        if (cancelled) return;
+        const cached = benchmarks[name];
+        if (cached && cached.length > 1 && (cached.at(-1)?.date ?? "") >= lastDate) {
+          setShown((s) => (s.includes(name) ? s : [...s, name]));
+          ok++;
+          continue;
+        }
+        attempted++;
+        if (await pull(name, true)) ok++;
+      }
+      if (!cancelled && attempted > 0 && ok === 0) {
+        toast("Couldn't reach Yahoo — add an index with “+ CSV” instead");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstDate, lastDate]);
 
   const rows = useMemo(() => {
     const bases: Record<string, number> = {};
@@ -720,18 +757,16 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
             </span>
           );
         })}
-        {["SPY", "QQQ", "NASDAQ"]
-          .filter((n) => !benchmarks[n])
-          .map((n) => (
-            <button
-              key={n}
-              onClick={() => void pull(n)}
-              disabled={!!fetching}
-              className="rounded-md border border-border px-1.5 py-0.5 text-[11px] hover:text-foreground disabled:opacity-50"
-            >
-              {fetching === n ? "…" : `+ ${n}`}
-            </button>
-          ))}
+        {AUTO_INDEXES.filter((n) => !benchmarks[n]).map((n) => (
+          <button
+            key={n}
+            onClick={() => void pull(n)}
+            disabled={!!fetching}
+            className="rounded-md border border-border px-1.5 py-0.5 text-[11px] hover:text-foreground disabled:opacity-50"
+          >
+            {fetching === n ? "…" : `+ ${n}`}
+          </button>
+        ))}
         <button
           onClick={() => fileRef.current?.click()}
           className="rounded-md border border-dashed border-border px-1.5 py-0.5 text-[11px] hover:text-foreground"
@@ -894,8 +929,8 @@ function InsightsPanel({ data, totals }: { data: Dataset; totals: Map<string, Da
             <EquityCurveFull totals={totals} />
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
               Your cumulative net P&amp;L (left, $) vs each index rebased to % from your first
-              trading day (right). Add one by dropping in a daily-close CSV — e.g. Yahoo Finance →
-              SPY → Historical Data → Download.
+              trading day (right). SPY / QQQ / Nasdaq pull from Yahoo automatically when the app is
+              served by a server; otherwise use “+ CSV”.
             </p>
           </div>
         </DrawerContent>
