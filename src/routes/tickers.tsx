@@ -92,7 +92,7 @@ function TickersPage() {
         </p>
 
         {!data || groups.length === 0 ? (
-          <p className="mt-10 rounded-2xl bg-card p-10 text-center text-sm text-muted-foreground">
+          <p className="mt-10 rounded-xl bg-card p-10 text-center text-sm text-muted-foreground">
             No data yet — import a CSV on the calendar page first.
           </p>
         ) : (
@@ -155,11 +155,11 @@ function TickersPage() {
             </div>
 
             {visible.length === 0 ? (
-              <p className="mt-4 rounded-2xl bg-card p-8 text-center text-sm text-muted-foreground">
+              <p className="mt-4 rounded-xl bg-card p-8 text-center text-sm text-muted-foreground">
                 No symbols match &ldquo;{query}&rdquo;.
               </p>
             ) : (
-              <div className="mt-4 divide-y divide-border overflow-hidden rounded-2xl bg-card">
+              <div className="mt-4 divide-y divide-border overflow-hidden rounded-xl bg-card">
                 {visible.map((g) => {
                   const isOpen = open.has(g.symbol);
                   const firstDay = groupFirstDay(g);
