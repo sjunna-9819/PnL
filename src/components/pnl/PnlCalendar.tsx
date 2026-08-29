@@ -12,9 +12,7 @@ import {
 import { toast } from "sonner";
 import {
   Area,
-  Bar,
   CartesianGrid,
-  Cell,
   ComposedChart,
   LabelList,
   Line,
@@ -677,7 +675,6 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   const benchmarks = useBenchmarks();
   // every default index is on by default — its line appears as soon as data lands
   const [hidden, setHidden] = useState<string[]>([]);
-  const [chart, setChart] = useState<"line" | "bars">("line");
   const [fetching, setFetching] = useState<string | null>(null);
   const [principal, setPrincipal] = useState<number>(() => {
     try {
@@ -801,22 +798,6 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   return (
     <div className="text-muted-foreground">
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
-        <div className="mr-1 flex items-center gap-0.5 rounded-md bg-secondary/60 p-0.5">
-          {(["line", "bars"] as const).map((c) => (
-            <button
-              key={c}
-              onClick={() => setChart(c)}
-              className={cn(
-                "rounded px-2 py-0.5 text-[11px] font-medium capitalize transition-colors",
-                chart === c
-                  ? "bg-card text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
         {principal > 0 && (
           <span
             className="flex items-center gap-1 rounded-md border border-transparent bg-secondary px-1.5 py-0.5 text-[11px] text-foreground"
@@ -895,15 +876,13 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
         className="relative h-[42vh] w-full text-muted-foreground [&_.recharts-area-curve]:[filter:drop-shadow(0_0_5px_var(--glow))]"
         style={{ ["--glow" as string]: stroke }}
       >
-        {chart === "line" && (
-          <div
-            key={firstDate + lastDate}
-            className="pointer-events-none absolute z-10"
-            style={{ left: 56, right: 54, top: 8, bottom: 18 }}
-          >
-            <LineRunner series={rows} />
-          </div>
-        )}
+        <div
+          key={firstDate + lastDate}
+          className="pointer-events-none absolute z-10"
+          style={{ left: 56, right: 54, top: 8, bottom: 18 }}
+        >
+          <LineRunner series={rows} />
+        </div>
         <ResponsiveContainer>
           <ComposedChart data={rows} margin={{ top: 8, right: 54, bottom: 0, left: 0 }}>
             <defs>
@@ -952,28 +931,18 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
               formatter={(v: number, key: string) =>
                 key === "cum"
                   ? [fmtMoney(v), "Cumulative P&L"]
-                  : key === "day"
-                    ? [fmtMoney(v), "Day P&L"]
-                    : [`${v > 0 ? "+" : ""}${v}%`, key === "You" ? "You" : key]
+                  : [`${v > 0 ? "+" : ""}${v}%`, key === "You" ? "You" : key]
               }
             />
-            {chart === "line" ? (
-              <Area
-                yAxisId="pnl"
-                type="monotone"
-                dataKey="cum"
-                stroke={stroke}
-                strokeWidth={2}
-                fill="url(#equity-full-fill)"
-              />
-            ) : (
-              <Bar yAxisId="pnl" dataKey="day" radius={[2, 2, 0, 0]}>
-                {rows.map((r, i) => (
-                  <Cell key={i} fill={r.day >= 0 ? "var(--color-profit)" : "var(--color-loss)"} />
-                ))}
-              </Bar>
-            )}
-            {principal > 0 && chart === "line" && (
+            <Area
+              yAxisId="pnl"
+              type="monotone"
+              dataKey="cum"
+              stroke={stroke}
+              strokeWidth={2}
+              fill="url(#equity-full-fill)"
+            />
+            {principal > 0 && (
               <Line
                 yAxisId="pct"
                 type="monotone"
