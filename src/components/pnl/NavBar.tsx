@@ -21,6 +21,7 @@ import { clearStatements, downloadCsv, importStatements } from "@/lib/import";
 const LINKS = [
   { to: "/", label: "Home", exact: true },
   { to: "/tickers", label: "Ticker P/L", exact: false },
+  { to: "/er", label: "ER", exact: false },
   { to: "/blog", label: "Blog", exact: false },
 ] as const;
 

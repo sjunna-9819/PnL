@@ -193,7 +193,8 @@ a ▲/▼ glyph so gain/loss is not colour-only). Import feedback and clear/demo
 `sonner` toasts (`<Toaster/>` mounted in `__root.tsx`).
 
 **Navigation** — a sticky `NavBar` (mounted in `__root.tsx`, so it's on every route). Left:
-tabs **Home** (`/`, the calendar), **Ticker P/L** (`/tickers`), **Blog** (`/blog`). Right:
+tabs **Home** (`/`, the calendar), **Ticker P/L** (`/tickers`), **ER** (`/er`, earnings
+calendar), **Blog** (`/blog`). Right:
 **Import CSVs**, the commission-settings gear, and **Clear** (with a confirm dialog, shown
 only when data is loaded). The import/clear logic lives in `src/lib/import.ts`
 (`importStatements`, `clearStatements`) so the nav and the empty-state drop zone share it.
@@ -233,6 +234,20 @@ The calendar page itself has no header — it opens straight on the drop zone or
   days traded, W/L, carried-in, remaining open size) and a "View on calendar →" link that
   jumps to `/?day=<first trading day>` (index route `validateSearch`).
 - **Symbol filter** + sort toggle (P&L / Name; click again to reverse direction) above the list.
+
+**`/er` — Earnings calendar**
+- One dated list of earnings report days across every ticker in the dataset — an **Upcoming**
+  section (next date first, relative "in N days", unconfirmed dates flagged `est.`) and a
+  **Recent** section (last ~4 quarters per ticker, newest first). Same date can list several
+  tickers.
+- Data: `fetchEarnings` server fn in `src/lib/marketData.ts` hits Yahoo `quoteSummary`
+  (`calendarEvents` + `earningsHistory`). Yahoo now needs a cookie + crumb — `yahooCrumb()`
+  fetches `finance.yahoo.com` for the `A1/A3` cookies then `/v1/test/getcrumb`, cached per
+  server process, refreshed on a 401/403. ETFs/indexes 404 → returned empty, shown as a
+  footnote.
+- `src/lib/earnings.ts` — `useSyncExternalStore` cache keyed by symbol, `localStorage`
+  `pnl-earnings-v1`, 24 h TTL, mirrored by the cross-device sync. The page fetches uncached /
+  stale symbols one at a time on mount.
 
 **`/blog` — Trading journal (the "agent")**
 - `src/lib/blog.ts` is a **pure heuristics engine**, no network / no model. `analyze(data)`
