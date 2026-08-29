@@ -104,8 +104,6 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
     if (!data) return null;
     const inMonth = [...totals.entries()].filter(([d]) => d.startsWith(monthKey));
     const pnl = inMonth.reduce((s, [, v]) => s + v.pnl, 0);
-    const fees = inMonth.reduce((s, [, v]) => s + v.fees, 0);
-    const wins = inMonth.filter(([, v]) => v.pnl > 0).length;
     const trades = inMonth.reduce((s, [, v]) => s + v.trades, 0);
     const contracts = data.closed
       .filter((t) => t.date.startsWith(monthKey))
@@ -120,9 +118,6 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
     );
     return {
       pnl,
-      days: inMonth.length,
-      winRate: inMonth.length ? Math.round((wins / inMonth.length) * 100) : 0,
-      fees,
       best: best?.[1].pnl ?? 0,
       worst: worst?.[1].pnl ?? 0,
       avgPerTrade: trades ? pnl / trades : 0,
@@ -214,14 +209,8 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
           </div>
 
           {summary && (
-            <div className="mt-2 grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+            <div className="mt-2 grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
               <Stat label="Total P&L" value={fmtMoneyShort(summary.pnl)} tone={summary.pnl} />
-              <Stat label="Commissions" value={`-$${summary.fees.toFixed(2)}`} />
-              <Stat
-                label="Green days"
-                value={`${summary.winRate}%`}
-                hint="Share of trading days this month that closed positive"
-              />
               <Stat label="Best day" value={fmtMoneyShort(summary.best)} tone={summary.best} />
               <Stat label="Worst day" value={fmtMoneyShort(summary.worst)} tone={summary.worst} />
               <Stat
@@ -367,7 +356,7 @@ function InsightsPanel({ data }: { data: Dataset }) {
           Full review →
         </Link>
       </div>
-      <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-7">
+      <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-9">
         <Stat label="Net P&L" value={fmtMoneyShort(m.net)} tone={m.net} />
         <Stat label="Trades" value={String(m.tradeCount)} />
         <Stat label="Win rate" value={`${Math.round(m.winRate * 100)}%`} />
@@ -375,6 +364,12 @@ function InsightsPanel({ data }: { data: Dataset }) {
         <Stat label="Profit factor" value={pf} tone={m.profitFactor >= 1 ? 1 : -1} />
         <Stat label="Expectancy" value={fmtMoneyShort(m.expectancy)} tone={m.expectancy} />
         <Stat label="Max drawdown" value={fmtMoneyShort(-m.maxDrawdown)} tone={-1} />
+        <Stat label="Commissions" value={`-$${m.fees.toFixed(2)}`} />
+        <Stat
+          label="Green days"
+          value={`${Math.round(m.dayWinRate * 100)}%`}
+          hint="Share of all trading days that closed positive"
+        />
       </div>
     </div>
   );
