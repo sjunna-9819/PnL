@@ -124,7 +124,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
   }, [data, totals, monthKey]);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6">
+    <div className="mx-auto flex w-full max-w-7xl flex-col px-4 py-3 sm:px-6 lg:h-[calc(100dvh-3.5rem)] lg:overflow-hidden">
       <input
         ref={inputRef}
         type="file"
@@ -168,7 +168,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex shrink-0 items-center justify-center gap-3">
             <Button
               variant="secondary"
               size="icon"
@@ -206,7 +206,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
           </div>
 
           {summary && (
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+            <div className="mt-2 grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
               <Stat label="Total P&L" value={fmtMoneyShort(summary.pnl)} tone={summary.pnl} />
               <Stat label="Commissions" value={`-$${summary.fees.toFixed(2)}`} />
               <Stat
@@ -237,9 +237,9 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
             </div>
           )}
 
-          <div className="mt-3 grid gap-4 lg:grid-cols-[1fr_340px]">
-            <div className="rounded-xl bg-card p-2 pb-40 sm:p-3 sm:pb-40">
-              <div className="flex gap-2 pb-1.5">
+          <div className="mt-2 grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_340px]">
+            <div className="flex flex-col overflow-hidden rounded-xl bg-card p-2 sm:p-3">
+              <div className="flex shrink-0 gap-2 pb-1.5">
                 <div className="grid flex-1 grid-cols-7 gap-2 text-center text-[11px] font-medium tracking-wider text-muted-foreground">
                   {WEEKDAYS.map((d) => (
                     <div key={d}>{d}</div>
@@ -250,13 +250,13 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2 lg:min-h-0 lg:flex-1">
                 {monthDays.map((week, wi) => {
                   const weekDays = week.filter((d): d is string => !!d);
                   const weekHasData = weekDays.some((d) => totals.has(d));
                   const weekPnl = weekDays.reduce((s, d) => s + (totals.get(d)?.pnl ?? 0), 0);
                   return (
-                    <div key={wi} className="flex gap-2">
+                    <div key={wi} className="flex gap-2 lg:min-h-0 lg:flex-1">
                       <div className="grid flex-1 grid-cols-7 gap-2">
                         {week.map((day, di) => {
                           if (!day) return <div key={`e${wi}-${di}`} />;
@@ -267,7 +267,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                               key={day}
                               onClick={() => setSelected(day)}
                               className={cn(
-                                "flex h-16 flex-col rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-colors hover:border-primary/50 sm:h-20",
+                                "flex h-16 flex-col overflow-hidden rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-colors hover:border-primary/50 sm:h-20 lg:h-full",
                                 t && (positive ? "bg-profit-surface/70" : "bg-loss-surface/70"),
                                 day === today && "ring-2 ring-primary/60",
                                 selected === day && "border-foreground/70",

@@ -26,7 +26,7 @@ export const Route = createFileRoute("/")({
 function Index() {
   const { day } = Route.useSearch();
   return (
-    <main className="min-h-[calc(100dvh-3.5rem)] bg-background text-foreground">
+    <main className="min-h-[calc(100dvh-3.5rem)] bg-background text-foreground lg:h-[calc(100dvh-3.5rem)] lg:overflow-hidden">
       <PnlCalendar initialDay={day} />
     </main>
   );
