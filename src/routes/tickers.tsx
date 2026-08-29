@@ -85,7 +85,7 @@ function TickersPage() {
 
   return (
     <main className="min-h-[calc(100dvh-3.5rem)] bg-background text-foreground">
-      <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
+      <div className="w-full px-4 py-10 sm:px-6 lg:px-24">
         <h1 className="text-3xl font-bold tracking-tight">Ticker P&amp;L</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Profit and loss by symbol. Tap a row to see the contracts behind it.
