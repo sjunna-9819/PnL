@@ -38,6 +38,7 @@ import {
   useBenchmarks,
   type BenchmarkPoint,
 } from "@/lib/benchmarks";
+import { fetchIndexHistory, YAHOO_SYMBOLS } from "@/lib/marketData";
 import { KindBadge, Stat, TrendArrow } from "@/components/pnl/shared";
 import {
   dailyTotals,
@@ -608,12 +609,37 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   const benchmarks = useBenchmarks();
   const [shown, setShown] = useState<string[]>([]);
   const [chart, setChart] = useState<"line" | "bars">("line");
+  const [fetching, setFetching] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const series = useMemo(() => equitySeries(totals), [totals]);
   const firstDate = series[0]?.date ?? "";
+  const lastDate = series.at(-1)?.date ?? firstDate;
 
   const active = shown.filter((n) => (benchmarks[n]?.length ?? 0) > 1);
+
+  async function pull(name: string) {
+    if (fetching) return;
+    setFetching(name);
+    try {
+      const pts = await fetchIndexHistory({
+        data: { symbol: YAHOO_SYMBOLS[name]!, start: firstDate, end: lastDate },
+      });
+      if (pts.length < 2) throw new Error("no data returned");
+      setBenchmark(name, pts);
+      setShown((s) => (s.includes(name) ? s : [...s, name]));
+      toast.success(`${name} · ${pts.length} days from Yahoo`);
+    } catch (err) {
+      toast.error(`Couldn't fetch ${name}`, {
+        description:
+          err instanceof Error
+            ? err.message
+            : "Needs the app served by a server (not a static host).",
+      });
+    } finally {
+      setFetching(null);
+    }
+  }
 
   const rows = useMemo(() => {
     const bases: Record<string, number> = {};
@@ -694,11 +720,23 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
             </span>
           );
         })}
+        {["SPY", "QQQ", "NASDAQ"]
+          .filter((n) => !benchmarks[n])
+          .map((n) => (
+            <button
+              key={n}
+              onClick={() => void pull(n)}
+              disabled={!!fetching}
+              className="rounded-md border border-border px-1.5 py-0.5 text-[11px] hover:text-foreground disabled:opacity-50"
+            >
+              {fetching === n ? "…" : `+ ${n}`}
+            </button>
+          ))}
         <button
           onClick={() => fileRef.current?.click()}
           className="rounded-md border border-dashed border-border px-1.5 py-0.5 text-[11px] hover:text-foreground"
         >
-          + Add index CSV
+          + CSV
         </button>
         <input
           ref={fileRef}
