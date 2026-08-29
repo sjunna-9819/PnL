@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDataset } from "@/lib/pnlStore";
 import { KindBadge, Stat, TrendArrow } from "@/components/pnl/shared";
@@ -45,10 +44,23 @@ function TickersPage() {
   const data = useDataset();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("pnl");
+  const [open, setOpen] = useState<Set<string>>(() => new Set());
+
+  const toggle = (symbol: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(symbol)) next.delete(symbol);
+      else next.add(symbol);
+      return next;
+    });
 
   const groups = useMemo(() => (data ? symbolGroups(data) : []), [data]);
   const total = groups.reduce((s, g) => s + g.pnl, 0);
   const winners = groups.filter((g) => g.pnl > 0).length;
+  const best = groups.reduce<SymbolGroup | null>(
+    (b, g) => (g.pnl > (b?.pnl ?? -Infinity) ? g : b),
+    null,
+  );
 
   const visible = useMemo(() => {
     const q = query.trim().toUpperCase();
@@ -65,7 +77,7 @@ function TickersPage() {
       <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
         <h1 className="text-3xl font-bold tracking-tight">Ticker P&amp;L</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Realized profit and loss for every symbol and contract in your imported statements.
+          Profit and loss by symbol. Tap a row to see the contracts behind it.
         </p>
 
         {!data || groups.length === 0 ? (
@@ -80,8 +92,8 @@ function TickersPage() {
               <Stat label="Green symbols" value={`${winners}/${groups.length}`} />
               <Stat
                 label="Best symbol"
-                value={visible[0] ? `${visible[0].symbol} ${fmtMoneyShort(visible[0].pnl)}` : "—"}
-                tone={visible[0]?.pnl ?? 0}
+                value={best ? `${best.symbol} ${fmtMoneyShort(best.pnl)}` : "—"}
+                tone={best?.pnl ?? 0}
               />
             </div>
 
@@ -116,92 +128,114 @@ function TickersPage() {
               </span>
             </div>
 
-            <div className="mt-4 space-y-4">
-              {visible.map((g) => {
-                const firstDay = groupFirstDay(g);
-                return (
-                  <section key={g.symbol} className="rounded-2xl bg-card p-5">
-                    <header className="flex items-baseline justify-between gap-4">
-                      {firstDay ? (
-                        <Link
-                          to="/"
-                          search={{ day: firstDay }}
-                          className="text-lg font-semibold hover:underline"
-                          title={`Show ${g.symbol} on the calendar`}
-                        >
-                          {g.symbol}
-                        </Link>
-                      ) : (
-                        <h2 className="text-lg font-semibold">{g.symbol}</h2>
-                      )}
-                      <span
-                        className={cn(
-                          "flex items-center gap-1 text-lg font-bold",
-                          g.pnl > 0 && "text-profit",
-                          g.pnl < 0 && "text-loss",
-                          g.pnl === 0 && "text-muted-foreground",
-                        )}
+            {visible.length === 0 ? (
+              <p className="mt-4 rounded-2xl bg-card p-8 text-center text-sm text-muted-foreground">
+                No symbols match &ldquo;{query}&rdquo;.
+              </p>
+            ) : (
+              <div className="mt-4 divide-y divide-border overflow-hidden rounded-2xl bg-card">
+                {visible.map((g) => {
+                  const isOpen = open.has(g.symbol);
+                  const firstDay = groupFirstDay(g);
+                  return (
+                    <div key={g.symbol}>
+                      <button
+                        onClick={() => toggle(g.symbol)}
+                        aria-expanded={isOpen}
+                        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-secondary/40"
                       >
-                        <TrendArrow tone={g.pnl} />
-                        {fmtMoney(g.pnl)}
-                      </span>
-                    </header>
-                    <p className="text-xs text-muted-foreground">
-                      {groupVolume(g).toLocaleString()} contracts/shares closed
-                      {g.fees > 0 ? ` · net of $${g.fees.toFixed(2)} commissions` : ""}
-                    </p>
-                    <ul className="mt-3 space-y-2">
-                      {g.rows.map((r) => {
-                        const unit = r.kind === "stock" ? "shares" : "contracts";
-                        return (
-                          <li key={r.key} className="rounded-xl bg-secondary/60 p-3">
-                            <div className="flex items-baseline justify-between gap-3">
-                              <span className="flex items-center gap-2 font-medium">
-                                <KindBadge kind={r.kind} />
-                                {r.label}
-                              </span>
-                              <span
-                                className={cn(
-                                  "font-semibold",
-                                  r.pnl > 0 && "text-profit",
-                                  r.pnl < 0 && "text-loss",
-                                  r.pnl === 0 && "text-muted-foreground",
-                                )}
+                        <span className="flex items-center gap-2.5">
+                          <ChevronRight
+                            className={cn(
+                              "size-4 shrink-0 text-muted-foreground transition-transform",
+                              isOpen && "rotate-90",
+                            )}
+                          />
+                          <span className="text-base font-semibold">{g.symbol}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {g.rows.length} contract{g.rows.length === 1 ? "" : "s"}
+                          </span>
+                        </span>
+                        <span
+                          className={cn(
+                            "flex shrink-0 items-center gap-1 text-base font-bold",
+                            g.pnl > 0 && "text-profit",
+                            g.pnl < 0 && "text-loss",
+                            g.pnl === 0 && "text-muted-foreground",
+                          )}
+                        >
+                          <TrendArrow tone={g.pnl} />
+                          {fmtMoney(g.pnl)}
+                        </span>
+                      </button>
+
+                      {isOpen && (
+                        <div className="border-t border-border bg-secondary/20 px-5 py-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-xs text-muted-foreground">
+                              {groupVolume(g).toLocaleString()} contracts/shares closed
+                              {g.fees > 0 ? ` · net of $${g.fees.toFixed(2)} commissions` : ""}
+                            </p>
+                            {firstDay && (
+                              <Link
+                                to="/"
+                                search={{ day: firstDay }}
+                                className="text-xs text-muted-foreground hover:text-foreground hover:underline"
                               >
-                                {r.pnl === 0 ? "—" : fmtMoney(r.pnl)}
-                              </span>
-                            </div>
-                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                              <span>
-                                {r.qty} {unit} closed
-                              </span>
-                              <span>
-                                {r.wins}W / {r.losses}L
-                              </span>
-                              <span>
-                                {r.days.length} day{r.days.length === 1 ? "" : "s"}
-                              </span>
-                              {r.carriedQty > 0 && <span>{r.carriedQty} carried in</span>}
-                              {r.openQty !== 0 && (
-                                <span className="rounded-full bg-primary/20 px-2 py-0.5 text-primary-foreground">
-                                  Still holding {Math.abs(r.openQty)} {unit} @ $
-                                  {r.avgOpenPrice.toFixed(2)}
-                                </span>
-                              )}
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </section>
-                );
-              })}
-              {visible.length === 0 && (
-                <p className="rounded-2xl bg-card p-8 text-center text-sm text-muted-foreground">
-                  No symbols match &ldquo;{query}&rdquo;.
-                </p>
-              )}
-            </div>
+                                View on calendar →
+                              </Link>
+                            )}
+                          </div>
+                          <ul className="mt-3 space-y-2">
+                            {g.rows.map((r) => {
+                              const unit = r.kind === "stock" ? "shares" : "contracts";
+                              return (
+                                <li key={r.key} className="rounded-xl bg-secondary/60 p-3">
+                                  <div className="flex items-baseline justify-between gap-3">
+                                    <span className="flex items-center gap-2 font-medium">
+                                      <KindBadge kind={r.kind} />
+                                      {r.label}
+                                    </span>
+                                    <span
+                                      className={cn(
+                                        "font-semibold",
+                                        r.pnl > 0 && "text-profit",
+                                        r.pnl < 0 && "text-loss",
+                                        r.pnl === 0 && "text-muted-foreground",
+                                      )}
+                                    >
+                                      {r.pnl === 0 ? "—" : fmtMoney(r.pnl)}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                    <span>
+                                      {r.qty} {unit} closed
+                                    </span>
+                                    <span>
+                                      {r.wins}W / {r.losses}L
+                                    </span>
+                                    <span>
+                                      {r.days.length} day{r.days.length === 1 ? "" : "s"}
+                                    </span>
+                                    {r.carriedQty > 0 && <span>{r.carriedQty} carried in</span>}
+                                    {r.openQty !== 0 && (
+                                      <span className="rounded-full bg-primary/20 px-2 py-0.5 text-primary-foreground">
+                                        Still holding {Math.abs(r.openQty)} {unit} @ $
+                                        {r.avgOpenPrice.toFixed(2)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </>
         )}
       </div>
