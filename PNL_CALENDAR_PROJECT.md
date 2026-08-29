@@ -193,9 +193,15 @@ The calendar page itself has no header — it opens straight on the drop zone or
 - The current date gets a ring; the selected day gets a full-opacity tint + accent ring.
 - Stat strip (period-scoped — month or year): Total P&L, Best day, Worst day, Avg / trade,
   Avg / day, Avg / contract (options), Avg / share (stock) — one compact row.
-- **Insights** panel under the calendar (left column): all-time Net P&L, Trades, Win rate,
-  Payoff, Profit factor, Expectancy, Max drawdown + a letter-grade chip linking to `/blog`.
-  Numbers come from `analyze()` in `src/lib/blog.ts`.
+- **Insights** panel under the calendar (left column): a mini **equity curve** (inline SVG,
+  cumulative net P&L) — click it to slide up a drawer with the full daily chart (recharts).
+  Then the stat grid: all-time Net P&L, Trades, Win rate, Payoff, Profit factor, Expectancy,
+  Max drawdown, Commissions, Green days + a letter-grade chip linking to `/blog`. Numbers
+  come from `analyze()` in `src/lib/blog.ts`.
+- **Index comparison** in the equity drawer: drop in a daily-close CSV (Yahoo Finance
+  "Download", or Nasdaq.com / thinkorswim export). `src/lib/benchmarks.ts` parses + stores it
+  in `localStorage`; each index is plotted rebased to % from your first trading day on a
+  secondary right axis. Free forever — no API key, no backend.
 - Commission inputs live in a gear **popover** in the nav bar; "Clear" (also in the nav) prompts
   an **alert dialog** before wiping the dataset.
 - Day detail (date, net P&L with gross/fee line, per-instrument rows, **STILL OPEN**
