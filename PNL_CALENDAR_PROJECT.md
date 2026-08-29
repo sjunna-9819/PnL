@@ -186,10 +186,13 @@ The calendar page itself has no header — it opens straight on the drop zone or
   offers **Load demo data**; import itself is in the nav bar.
 - On `lg+` the whole page is locked to the viewport (`h-[calc(100dvh-3.5rem)]`, `overflow-hidden`);
   the calendar grid flex-fills the leftover height so there is no page scroll.
-- **Mon–Fri only** (5-column grid, weekends skipped). Month navigation with a **This month**
-  shortcut; the current date gets a ring; the selected day gets a full-opacity tint + accent ring.
-- Month stats: Total P&L, Commissions, **Green days** (% of trading days that closed positive),
-  Best day, Worst day, Avg / trade, Avg / day, Avg / contract — one compact row.
+- **Month / Year toggle.** Month view = a **Mon–Fri only** 5-column grid; each day cell shows
+  net P&L and a `NT xW yL zBE` line (BE = break-even trades). Year view = a weekday **heatmap**
+  of the whole year (columns = weeks, rows = Mon–Fri), squares tinted by day P&L, click to
+  select. `◀ ▶` steps a month or a year; a **This month/year** shortcut appears when off it.
+- The current date gets a ring; the selected day gets a full-opacity tint + accent ring.
+- Stat strip (period-scoped — month or year): Total P&L, Best day, Worst day, Avg / trade,
+  Avg / day, Avg / contract (options), Avg / share (stock) — one compact row.
 - **Insights** panel under the calendar (left column): all-time Net P&L, Trades, Win rate,
   Payoff, Profit factor, Expectancy, Max drawdown + a letter-grade chip linking to `/blog`.
   Numbers come from `analyze()` in `src/lib/blog.ts`.
