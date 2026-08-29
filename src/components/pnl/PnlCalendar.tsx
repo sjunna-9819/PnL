@@ -16,6 +16,7 @@ import {
   CartesianGrid,
   Cell,
   ComposedChart,
+  LabelList,
   Line,
   ReferenceLine,
   ResponsiveContainer,
@@ -603,7 +604,7 @@ const BENCH_COLORS = [
   "var(--color-chart-5)",
 ];
 
-const AUTO_INDEXES = ["SPY", "QQQ", "NASDAQ"];
+const AUTO_INDEXES = ["SPY", "QQQ", "NASDAQ", "DOW", "RUSSELL"];
 
 /** Full daily equity chart + index comparison, shown in the slide-up drawer. */
 function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
@@ -705,6 +706,32 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   const end = rows.at(-1)?.cum ?? 0;
   const stroke = end >= 0 ? "var(--color-profit)" : "var(--color-loss)";
 
+  // label only the last point of a series
+  const endLabel =
+    (fill: string, fmt: (v: number) => string) =>
+    (p: {
+      x?: string | number | undefined;
+      y?: string | number | undefined;
+      value?: string | number | undefined;
+      index?: number | undefined;
+    }) => {
+      const x = Number(p.x);
+      const y = Number(p.y);
+      if (
+        p.index !== rows.length - 1 ||
+        p.value == null ||
+        !Number.isFinite(x) ||
+        !Number.isFinite(y)
+      ) {
+        return null;
+      }
+      return (
+        <text x={x + 5} y={y} fill={fill} fontSize={10} fontWeight={700} dominantBaseline="central">
+          {fmt(Number(p.value))}
+        </text>
+      );
+    };
+
   return (
     <div className="text-muted-foreground">
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
@@ -727,6 +754,8 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
         <span className="text-[10px] uppercase tracking-wider">Compare vs</span>
         {Object.keys(benchmarks).map((name) => {
           const on = shown.includes(name);
+          const finalPct = on ? (rows.at(-1)?.[name] as number | undefined) : undefined;
+          const color = BENCH_COLORS[active.indexOf(name) % BENCH_COLORS.length] ?? undefined;
           return (
             <span
               key={name}
@@ -739,8 +768,18 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
                 onClick={() =>
                   setShown((s) => (s.includes(name) ? s.filter((x) => x !== name) : [...s, name]))
                 }
+                className="flex items-center gap-1"
               >
+                {on && color && (
+                  <span className="size-1.5 rounded-full" style={{ background: color }} />
+                )}
                 {name}
+                {typeof finalPct === "number" && (
+                  <span className="font-semibold tabular-nums">
+                    {finalPct > 0 ? "+" : ""}
+                    {finalPct.toFixed(1)}%
+                  </span>
+                )}
               </button>
               <button
                 onClick={() => {
@@ -774,7 +813,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
         <ResponsiveContainer>
           <ComposedChart
             data={rows}
-            margin={{ top: 8, right: active.length ? 8 : 12, bottom: 0, left: 0 }}
+            margin={{ top: 8, right: active.length ? 52 : 40, bottom: 0, left: 0 }}
           >
             <defs>
               <linearGradient id="equity-full-fill" x1="0" y1="0" x2="0" y2="1">
@@ -835,7 +874,9 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
                 stroke={stroke}
                 strokeWidth={2}
                 fill="url(#equity-full-fill)"
-              />
+              >
+                <LabelList dataKey="cum" content={endLabel(stroke, fmtMoneyShort)} />
+              </Area>
             ) : (
               <Bar yAxisId="pnl" dataKey="day" radius={[2, 2, 0, 0]}>
                 {rows.map((r, i) => (
@@ -843,17 +884,25 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
                 ))}
               </Bar>
             )}
-            {active.map((name, i) => (
-              <Line
-                key={name}
-                yAxisId="pct"
-                type="monotone"
-                dataKey={name}
-                stroke={BENCH_COLORS[i % BENCH_COLORS.length]}
-                strokeWidth={1.5}
-                dot={false}
-              />
-            ))}
+            {active.map((name, i) => {
+              const color = BENCH_COLORS[i % BENCH_COLORS.length]!;
+              return (
+                <Line
+                  key={name}
+                  yAxisId="pct"
+                  type="monotone"
+                  dataKey={name}
+                  stroke={color}
+                  strokeWidth={1.5}
+                  dot={false}
+                >
+                  <LabelList
+                    dataKey={name}
+                    content={endLabel(color, (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`)}
+                  />
+                </Line>
+              );
+            })}
           </ComposedChart>
         </ResponsiveContainer>
       </div>

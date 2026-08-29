@@ -13,8 +13,9 @@ export const YAHOO_SYMBOLS: Record<string, string> = {
   SPY: "SPY",
   QQQ: "QQQ",
   NASDAQ: "^IXIC",
-  "S&P 500": "^GSPC",
   DOW: "^DJI",
+  RUSSELL: "^RUT",
+  "S&P 500": "^GSPC",
 };
 
 type Args = { symbol: string; start: string; end: string };
