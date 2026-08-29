@@ -1,12 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowLeft,
-  CalendarClock,
-  ChevronLeft,
-  ChevronRight,
-  Sparkles,
-  Upload,
-} from "lucide-react";
+import { CalendarClock, ChevronLeft, ChevronRight, Sparkles, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
@@ -303,18 +296,15 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                       })}
                       <div className="hidden h-16 items-center justify-center gap-1 rounded-lg bg-secondary/40 p-1.5 sm:h-20 md:flex lg:h-full">
                         {weekHasData ? (
-                          <>
-                            <ArrowLeft className="size-3 shrink-0 text-muted-foreground" />
-                            <span
-                              className={cn(
-                                "text-xs font-semibold tabular-nums",
-                                weekPnl > 0 && "text-profit",
-                                weekPnl < 0 && "text-loss",
-                              )}
-                            >
-                              ({fmtMoneyShort(weekPnl)})
-                            </span>
-                          </>
+                          <span
+                            className={cn(
+                              "text-xs font-semibold tabular-nums",
+                              weekPnl > 0 && "text-profit",
+                              weekPnl < 0 && "text-loss",
+                            )}
+                          >
+                            ({fmtMoneyShort(weekPnl)})
+                          </span>
                         ) : (
                           <span className="text-xs text-muted-foreground/40">—</span>
                         )}
