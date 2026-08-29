@@ -611,13 +611,6 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   const [shown, setShown] = useState<string[]>([]);
   const [chart, setChart] = useState<"line" | "bars">("line");
   const [fetching, setFetching] = useState<string | null>(null);
-  const [acct, setAcct] = useState<number>(() => {
-    try {
-      return Number(window.localStorage.getItem("pnl-acct-size")) || 0;
-    } catch {
-      return 0;
-    }
-  });
   const inFlight = useRef(false);
 
   const series = useMemo(() => equitySeries(totals), [totals]);
@@ -695,7 +688,6 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
         cum: Math.round(s.cum),
         day: Math.round(s.day),
       };
-      if (acct > 0) row["you"] = Number(((s.cum / acct) * 100).toFixed(2));
       for (const n of active) {
         const b = benchmarks[n]!;
         let c: BenchmarkPoint | undefined;
@@ -708,12 +700,10 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
       return row;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [series, benchmarks, shown.join(","), firstDate, acct]);
+  }, [series, benchmarks, shown.join(","), firstDate]);
 
   const end = rows.at(-1)?.cum ?? 0;
   const stroke = end >= 0 ? "var(--color-profit)" : "var(--color-loss)";
-  const showPct = active.length > 0 || acct > 0;
-  const youPct = acct > 0 && end !== 0 ? (end / acct) * 100 : null;
 
   return (
     <div className="text-muted-foreground">
@@ -775,38 +765,6 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
             {fetching === n ? "…" : `+ ${n}`}
           </button>
         ))}
-
-        <label className="ml-auto flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[11px]">
-          Acct&nbsp;$
-          <input
-            type="number"
-            min={0}
-            step={1000}
-            defaultValue={acct || ""}
-            placeholder="—"
-            onChange={(e) => {
-              const v = Math.max(0, Number(e.target.value) || 0);
-              setAcct(v);
-              try {
-                window.localStorage.setItem("pnl-acct-size", String(v));
-              } catch {
-                /* ignore */
-              }
-            }}
-            className="w-20 bg-transparent text-right outline-none"
-          />
-        </label>
-        {youPct !== null && (
-          <span
-            className={cn(
-              "rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums",
-              youPct >= 0 ? "bg-profit/20 text-profit" : "bg-loss/20 text-loss",
-            )}
-          >
-            You {youPct >= 0 ? "+" : ""}
-            {youPct.toFixed(1)}%
-          </span>
-        )}
       </div>
 
       <div
@@ -816,7 +774,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
         <ResponsiveContainer>
           <ComposedChart
             data={rows}
-            margin={{ top: 8, right: showPct ? 8 : 12, bottom: 0, left: 0 }}
+            margin={{ top: 8, right: active.length ? 8 : 12, bottom: 0, left: 0 }}
           >
             <defs>
               <linearGradient id="equity-full-fill" x1="0" y1="0" x2="0" y2="1">
@@ -840,7 +798,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
               axisLine={false}
               tickFormatter={(v: number) => fmtMoneyShort(v)}
             />
-            {showPct && (
+            {active.length > 0 && (
               <YAxis
                 yAxisId="pct"
                 orientation="right"
@@ -866,7 +824,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
                   ? [fmtMoney(v), "Cumulative P&L"]
                   : key === "day"
                     ? [fmtMoney(v), "Day P&L"]
-                    : [`${v > 0 ? "+" : ""}${v}%`, key === "you" ? "You" : key]
+                    : [`${v > 0 ? "+" : ""}${v}%`, key]
               }
             />
             {chart === "line" ? (
@@ -884,17 +842,6 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
                   <Cell key={i} fill={r.day >= 0 ? "var(--color-profit)" : "var(--color-loss)"} />
                 ))}
               </Bar>
-            )}
-            {acct > 0 && chart === "line" && (
-              <Line
-                yAxisId="pct"
-                type="monotone"
-                dataKey="you"
-                stroke={stroke}
-                strokeWidth={2}
-                strokeDasharray="4 3"
-                dot={false}
-              />
             )}
             {active.map((name, i) => (
               <Line
