@@ -159,7 +159,9 @@ day total overrides the computed gross when present, and commissions are then su
 - Import button + full-page drag-and-drop, multi-file.
 - Month navigation; each day cell tinted `profit-surface` / `loss-surface`, showing net P&L
   and trade count.
-- Month stats: Total P&L, Commissions, Win rate, Best day, Worst day.
+- Month stats: Total P&L, Commissions, Win rate, Best day, Worst day, Avg P&L / trade
+  (month P&L ÷ closed trades), Avg P&L / day (month P&L ÷ trading days), Avg P&L / contract
+  (month P&L ÷ contracts+shares closed that month).
 - Day sidebar: date, day net P&L (plus "net of $X commissions (gross …)"), per-instrument
   rows with badge (**C** green / **P** red / **Stock**), P&L, quantities closed/opened,
   avg entry/exit, fill count, carried-in, fees, and a status chip; plus a **STILL OPEN**

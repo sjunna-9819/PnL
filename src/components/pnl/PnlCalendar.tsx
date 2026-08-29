@@ -102,6 +102,10 @@ export function PnlCalendar() {
     const pnl = inMonth.reduce((s, [, v]) => s + v.pnl, 0);
     const fees = inMonth.reduce((s, [, v]) => s + v.fees, 0);
     const wins = inMonth.filter(([, v]) => v.pnl > 0).length;
+    const trades = inMonth.reduce((s, [, v]) => s + v.trades, 0);
+    const contracts = data.closed
+      .filter((t) => t.date.startsWith(monthKey))
+      .reduce((s, t) => s + Math.abs(t.qty), 0);
     const best = inMonth.reduce((b, x) => (x[1].pnl > (b?.[1].pnl ?? -Infinity) ? x : b), null as
       | [string, { pnl: number; trades: number }]
       | null);
@@ -115,6 +119,9 @@ export function PnlCalendar() {
       fees,
       best: best?.[1].pnl ?? 0,
       worst: worst?.[1].pnl ?? 0,
+      avgPerTrade: trades ? pnl / trades : 0,
+      avgPerDay: inMonth.length ? pnl / inMonth.length : 0,
+      avgPerContract: contracts ? pnl / contracts : 0,
     };
   }, [data, totals, cursor]);
 
@@ -246,12 +253,19 @@ export function PnlCalendar() {
           </div>
 
           {summary && (
-            <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-5">
+            <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
               <Stat label="Total P&L" value={fmtMoneyShort(summary.pnl)} tone={summary.pnl} />
               <Stat label="Commissions" value={`-$${summary.fees.toFixed(2)}`} />
               <Stat label="Win rate" value={`${summary.winRate}%`} />
               <Stat label="Best day" value={fmtMoneyShort(summary.best)} tone={summary.best} />
               <Stat label="Worst day" value={fmtMoneyShort(summary.worst)} tone={summary.worst} />
+              <Stat label="Avg P&L / trade" value={fmtMoney(summary.avgPerTrade)} tone={summary.avgPerTrade} />
+              <Stat label="Avg P&L / day" value={fmtMoney(summary.avgPerDay)} tone={summary.avgPerDay} />
+              <Stat
+                label="Avg P&L / contract"
+                value={fmtMoney(summary.avgPerContract)}
+                tone={summary.avgPerContract}
+              />
             </div>
           )}
 
