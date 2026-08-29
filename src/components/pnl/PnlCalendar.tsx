@@ -311,14 +311,16 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
               </div>
             </div>
 
-            <aside className="hidden rounded-xl bg-card p-4 lg:block">
-              {selected ? (
-                <DayDetail data={data} selected={selected} totals={totals} />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Select a day to see the tickers you played.
-                </p>
-              )}
+            <aside className="hidden lg:block">
+              <div className="sticky top-[4.5rem] max-h-[calc(100dvh-6rem)] overflow-y-auto overscroll-contain rounded-xl bg-card p-4">
+                {selected ? (
+                  <DayDetail data={data} selected={selected} totals={totals} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Select a day to see the tickers you played.
+                  </p>
+                )}
+              </div>
             </aside>
           </div>
 
