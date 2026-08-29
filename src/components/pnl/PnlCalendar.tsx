@@ -267,10 +267,16 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                               key={day}
                               onClick={() => setSelected(day)}
                               className={cn(
-                                "flex h-16 flex-col overflow-hidden rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-colors hover:border-primary/50 sm:h-20 lg:h-full",
+                                "flex h-16 flex-col overflow-hidden rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-all hover:border-primary/50 sm:h-20 lg:h-full",
                                 t && (positive ? "bg-profit-surface/70" : "bg-loss-surface/70"),
-                                day === today && "ring-2 ring-primary/60",
-                                selected === day && "border-foreground/70",
+                                day === today && "ring-1 ring-primary/60",
+                                selected === day &&
+                                  "z-10 shadow-lg ring-2 ring-foreground ring-offset-2 ring-offset-card",
+                                selected === day &&
+                                  t &&
+                                  (positive
+                                    ? "bg-profit-surface brightness-110"
+                                    : "bg-loss-surface brightness-110"),
                               )}
                             >
                               <span className="text-[11px] leading-none text-muted-foreground">
