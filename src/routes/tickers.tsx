@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useDataset } from "@/lib/pnlStore";
@@ -61,15 +61,9 @@ function TickersPage() {
   }, [groups, query, sort]);
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-[calc(100dvh-3.5rem)] bg-background text-foreground">
       <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" /> Back to calendar
-        </Link>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight">Ticker P&amp;L</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Ticker P&amp;L</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Realized profit and loss for every symbol and contract in your imported statements.
         </p>

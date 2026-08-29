@@ -18,10 +18,15 @@ and persisted in `localStorage`.
 src/
   lib/pnl.ts                  # all parsing + P&L math (pure, no React)
   lib/pnlStore.ts             # persistent shared store (useSyncExternalStore + localStorage)
+  lib/demoData.ts             # demoDataset() — sample data for the empty state
+  lib/blog.ts                 # journal agent: analyze() + journal() heuristics engine (pure)
   components/pnl/PnlCalendar.tsx  # calendar page UI (import, month grid, day sidebar, fee settings)
-  routes/index.tsx            # "/"        -> PnlCalendar
+  components/pnl/NavBar.tsx   # sticky top nav (Calendar / Ticker P/L / Blog), mounted in __root
+  components/pnl/shared.tsx   # Stat, KindBadge, TrendArrow — shared across pages
+  routes/index.tsx            # "/"        -> PnlCalendar  (validateSearch: ?day=YYYY-MM-DD)
   routes/tickers.tsx          # "/tickers" -> per-symbol P&L page
-  routes/__root.tsx           # root layout
+  routes/blog.tsx             # "/blog"    -> automated trading-journal review
+  routes/__root.tsx           # root layout + NavBar + <Toaster/>
   styles.css                  # dark theme + profit/loss design tokens
 ```
 
@@ -162,6 +167,10 @@ Shared bits live in `src/components/pnl/shared.tsx` (`Stat`, `KindBadge`, `Trend
 a ▲/▼ glyph so gain/loss is not colour-only). Import feedback and clear/demo actions use
 `sonner` toasts (`<Toaster/>` mounted in `__root.tsx`).
 
+**Navigation** — a sticky `NavBar` (mounted in `__root.tsx`, so it's on every route) with the
+Aum logo linking home and three tabs: **Calendar** (`/`), **Ticker P/L** (`/tickers`),
+**Blog** (`/blog`). No more per-page back links or in-page nav buttons.
+
 **`/` — PnlCalendar**
 - Import button + full-page drag-and-drop, multi-file. Empty state names the supported
   brokers and offers **Load demo data**.
@@ -184,6 +193,20 @@ a ▲/▼ glyph so gain/loss is not colour-only). Import feedback and clear/demo
   with `?day=<first trading day>` so the calendar jumps there (index route
   `validateSearch`). Groups expand into individual contracts with badge, net P&L, quantity,
   days traded, W/L, carried-in and remaining open size.
+
+**`/blog` — Trading journal (the "agent")**
+- `src/lib/blog.ts` is a **pure heuristics engine**, no network / no model. `analyze(data)`
+  computes ~25 metrics (expectancy, payoff, profit factor, win rate, max drawdown, day/ticker
+  concentration, over-trading, revenge-trading, sizing CV, fee drag, call-vs-put bias,
+  overnight-option exposure, repeat-offender symbols) and emits `goods` / `bads` / `watch` /
+  `advice` strings plus a 0–100 score and letter grade.
+- `journal(data)` composes dated `Post[]`: a graded **Coach's review**, one **month note** per
+  month with data, and a **By the numbers** stat dump. Re-derived on every dataset change —
+  nothing is persisted.
+- The page renders posts newest-intent-first as cards; grade badge, tone-coloured section
+  headings and bullet dots. Empty state points back to `/` to import.
+- To swap in an LLM later: keep `analyze()` for the metrics, feed its output to the model as
+  context, replace only the string composition in `journal()`.
 
 **Theme (`src/styles.css`)** — dark base with semantic tokens: `--profit`, `--loss`,
 `--profit-surface`, `--loss-surface`. Never hardcode colors in components; use

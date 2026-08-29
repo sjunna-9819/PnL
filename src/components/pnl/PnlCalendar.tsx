@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import {
-  BarChart3,
   CalendarClock,
   ChevronLeft,
   ChevronRight,
@@ -212,48 +210,29 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <img
-            src="/aum.webp"
-            alt="Aum — auspicious symbol"
-            title="ॐ — for luck"
-            className="mt-1 size-10 shrink-0 select-none"
-            style={{
-              filter:
-                "invert(78%) sepia(48%) saturate(680%) hue-rotate(1deg) brightness(94%) contrast(92%)",
-            }}
-          />
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">PnL Calendar</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Import a broker CSV export — columns are matched automatically.
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Calendar</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Import a broker CSV export — columns are matched automatically.
+          </p>
+          {allTime && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              All-time{" "}
+              <span
+                className={cn(
+                  "font-semibold",
+                  allTime.pnl > 0 && "text-profit",
+                  allTime.pnl < 0 && "text-loss",
+                )}
+              >
+                {fmtMoney(allTime.pnl)}
+              </span>{" "}
+              net · {allTime.trades} trades · {allTime.days} trading days
+              {allTime.since ? ` · since ${prettyDate(allTime.since)}` : ""}
             </p>
-            {allTime && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                All-time{" "}
-                <span
-                  className={cn(
-                    "font-semibold",
-                    allTime.pnl > 0 && "text-profit",
-                    allTime.pnl < 0 && "text-loss",
-                  )}
-                >
-                  {fmtMoney(allTime.pnl)}
-                </span>{" "}
-                net · {allTime.trades} trades · {allTime.days} trading days
-                {allTime.since ? ` · since ${prettyDate(allTime.since)}` : ""}
-              </p>
-            )}
-          </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          {data && (
-            <Button variant="secondary" asChild>
-              <Link to="/tickers">
-                <BarChart3 /> Ticker P/L
-              </Link>
-            </Button>
-          )}
           <Button onClick={() => inputRef.current?.click()}>
             <Upload /> Import CSVs
           </Button>
