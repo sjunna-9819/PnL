@@ -202,6 +202,34 @@ export function clearAllData() {
   commit();
 }
 
+/** JSON backup of every imported file (same shape as the localStorage blob). */
+export function serializeFiles(): { json: string; files: number; fills: number } {
+  load();
+  const json = JSON.stringify(
+    {
+      v: 2 as const,
+      files: files.map((f) => ({
+        name: f.name,
+        fills: f.fills,
+        official: [...f.official].map(([d, m]) => [d, [...m]]),
+      })),
+    },
+    null,
+    2,
+  );
+  return { json, files: files.length, fills: files.reduce((s, f) => s + f.fills.length, 0) };
+}
+
+/** Restore a JSON backup (v1 or v2), appending its files to the current set. */
+export function addSerializedFiles(json: string): number {
+  load();
+  const restored = migrate(JSON.parse(json));
+  files = [...files, ...restored];
+  loaded = true;
+  commit();
+  return restored.length;
+}
+
 /** Replace everything with a not-file-backed dataset used only by the demo. */
 export function loadDemoFiles(demo: ImportedFile) {
   files = [demo];

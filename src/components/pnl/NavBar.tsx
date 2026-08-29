@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Link } from "@tanstack/react-router";
-import { Settings2, Trash2, Upload, X } from "lucide-react";
+import { Download, Settings2, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +24,7 @@ import {
   useDataset,
   useImportedFiles,
 } from "@/lib/pnlStore";
-import { clearStatements, importStatements } from "@/lib/import";
+import { clearStatements, downloadBackup, importStatements } from "@/lib/import";
 
 const LINKS = [
   { to: "/", label: "Home", exact: true },
@@ -61,7 +61,7 @@ export function NavBar() {
           <input
             ref={inputRef}
             type="file"
-            accept=".csv,text/csv"
+            accept=".csv,text/csv,.json,application/json"
             multiple
             className="hidden"
             onChange={(e) => {
@@ -72,8 +72,8 @@ export function NavBar() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="sm">
-                <Upload /> Import CSVs
+              <Button size="icon" title="Import statements">
+                <Upload />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-72">
@@ -124,6 +124,17 @@ export function NavBar() {
               )}
             </PopoverContent>
           </Popover>
+
+          {data && (
+            <Button
+              variant="secondary"
+              size="icon"
+              title="Download backup (.json)"
+              onClick={downloadBackup}
+            >
+              <Download />
+            </Button>
+          )}
 
           <Popover>
             <PopoverTrigger asChild>
