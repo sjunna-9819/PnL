@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, ChevronRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDataset } from "@/lib/pnlStore";
-import { KindBadge, Stat, TrendArrow } from "@/components/pnl/shared";
+import { KindBadge, Stat } from "@/components/pnl/shared";
 import { fmtMoney, fmtMoneyShort, symbolGroups, type SymbolGroup } from "@/lib/pnl";
 
 const title = "Ticker P&L — Profit and Loss by Symbol and Contract";
@@ -80,6 +80,8 @@ function TickersPage() {
     if (dir === "desc") sorted.reverse();
     return sorted;
   }, [groups, query, sort, dir]);
+
+  const maxAbs = Math.max(1, ...visible.map((g) => Math.abs(g.pnl)));
 
   return (
     <main className="min-h-[calc(100dvh-3.5rem)] bg-background text-foreground">
@@ -166,30 +168,31 @@ function TickersPage() {
                       <button
                         onClick={() => toggle(g.symbol)}
                         aria-expanded={isOpen}
-                        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-secondary/40"
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-secondary/30"
                       >
-                        <span className="flex items-center gap-2.5">
-                          <ChevronRight
-                            className={cn(
-                              "size-4 shrink-0 text-muted-foreground transition-transform",
-                              isOpen && "rotate-90",
-                            )}
-                          />
-                          <span className="text-base font-semibold">{g.symbol}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {g.rows.length} contract{g.rows.length === 1 ? "" : "s"}
-                          </span>
-                        </span>
-                        <span
+                        <ChevronRight
                           className={cn(
-                            "flex shrink-0 items-center gap-1 text-base font-bold",
-                            g.pnl > 0 && "text-profit",
-                            g.pnl < 0 && "text-loss",
-                            g.pnl === 0 && "text-muted-foreground",
+                            "size-4 shrink-0 text-muted-foreground transition-transform",
+                            isOpen && "rotate-90",
                           )}
-                        >
-                          <TrendArrow tone={g.pnl} />
-                          {fmtMoney(g.pnl)}
+                        />
+                        <span className="w-14 shrink-0 text-sm font-semibold">{g.symbol}</span>
+                        <span className="relative h-6 flex-1">
+                          <span
+                            className={cn(
+                              "absolute inset-y-0 left-0 flex items-center justify-end rounded pr-2",
+                              g.pnl > 0 && "bg-profit",
+                              g.pnl < 0 && "bg-loss",
+                              g.pnl === 0 && "bg-secondary",
+                            )}
+                            style={{
+                              width: `${Math.max((Math.abs(g.pnl) / maxAbs) * 100, 16)}%`,
+                            }}
+                          >
+                            <span className="whitespace-nowrap text-xs font-bold tabular-nums text-background">
+                              {fmtMoney(g.pnl)}
+                            </span>
+                          </span>
                         </span>
                       </button>
 
