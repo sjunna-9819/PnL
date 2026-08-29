@@ -105,9 +105,12 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
     const inMonth = [...totals.entries()].filter(([d]) => d.startsWith(monthKey));
     const pnl = inMonth.reduce((s, [, v]) => s + v.pnl, 0);
     const trades = inMonth.reduce((s, [, v]) => s + v.trades, 0);
-    const contracts = data.closed
-      .filter((t) => t.date.startsWith(monthKey))
-      .reduce((s, t) => s + Math.abs(t.qty), 0);
+    // "per contract" = options only; stock shares are not contracts.
+    const optionTrades = data.closed.filter(
+      (t) => t.date.startsWith(monthKey) && instrumentKind(t.label) !== "stock",
+    );
+    const optionContracts = optionTrades.reduce((s, t) => s + Math.abs(t.qty), 0);
+    const optionPnl = optionTrades.reduce((s, t) => s + t.pnl, 0);
     const best = inMonth.reduce<[string, DayTotal] | null>(
       (b, x) => (x[1].pnl > (b?.[1].pnl ?? -Infinity) ? x : b),
       null,
@@ -122,7 +125,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
       worst: worst?.[1].pnl ?? 0,
       avgPerTrade: trades ? pnl / trades : 0,
       avgPerDay: inMonth.length ? pnl / inMonth.length : 0,
-      avgPerContract: contracts ? pnl / contracts : 0,
+      avgPerContract: optionContracts ? optionPnl / optionContracts : 0,
     };
   }, [data, totals, monthKey]);
 
@@ -229,7 +232,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                 label="Avg / contract"
                 value={fmtMoney(summary.avgPerContract)}
                 tone={summary.avgPerContract}
-                hint="Month P&L ÷ contracts and shares closed this month"
+                hint="Gross option P&L ÷ option contracts closed this month (stock excluded)"
               />
             </div>
           )}
