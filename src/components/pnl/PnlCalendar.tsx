@@ -271,12 +271,12 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                                 t && (positive ? "bg-profit-surface/70" : "bg-loss-surface/70"),
                                 day === today && "ring-1 ring-primary/60",
                                 selected === day &&
-                                  "z-10 shadow-lg ring-2 ring-foreground ring-offset-2 ring-offset-card",
+                                  "z-10 scale-[1.05] shadow-xl ring-[3px] ring-foreground ring-offset-2 ring-offset-card",
                                 selected === day &&
                                   t &&
                                   (positive
-                                    ? "bg-profit-surface brightness-110"
-                                    : "bg-loss-surface brightness-110"),
+                                    ? "bg-profit/80 brightness-110"
+                                    : "bg-loss/80 brightness-110"),
                               )}
                             >
                               <span className="text-[11px] leading-none text-muted-foreground">
