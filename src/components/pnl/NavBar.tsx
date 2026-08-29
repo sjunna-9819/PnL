@@ -17,6 +17,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { removeImportedFile, undoRemoveFile, useDataset, useImportedFiles } from "@/lib/pnlStore";
 import { clearStatements, downloadCsv, importStatements } from "@/lib/import";
+import { LuckyCharm } from "./LuckyCharm";
 
 const LINKS = [
   { to: "/", label: "Home", exact: true },
@@ -51,6 +52,8 @@ export function NavBar() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <LuckyCharm />
+
           <input
             ref={inputRef}
             type="file"
