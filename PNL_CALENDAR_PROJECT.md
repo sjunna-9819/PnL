@@ -151,13 +151,20 @@ day total overrides the computed gross when present, and commissions are then su
 ## 7. Persistence (`src/lib/pnlStore.ts`)
 
 - `useSyncExternalStore` module store, SSR-safe (server snapshot = `null`).
-- `localStorage["pnl-calendar-data-v1"]` holds `{fills, files, official}`; the dataset is
-  **rebuilt** from raw fills on load, so any engine improvement applies to already-imported data.
-- API: `useDataset()`, `setDataset()`, `useCommissions()`, `getCommissions()`, `setCommissions()`.
-- Importing multiple CSVs merges: fills append, official P&L maps merge by date.
-- `src/lib/demoData.ts` — `demoDataset()` builds a deterministic sample (two months of
-  stock + options trades, 2 left open) straight through `buildDataset`; wired to the
-  empty-state "Load demo data" button.
+- Source of truth is an **`ImportedFile[]`** — each entry is `{ name, fills, official }` for one
+  imported statement. The `Dataset` is **derived** (`deriveDataset` → `buildDataset` over the
+  concatenated fills) and re-derived on every mutation, so engine changes apply to old data.
+- `localStorage["pnl-calendar-data-v1"]` stores `{ v: 2, files: [...] }`. A pre-v2 blob
+  (`{fills, files, official}`) auto-migrates on load — fills are split back into files by their
+  `source` field; the old `official` map is attached to the last file.
+- API: `useDataset()`, `useImportedFiles()` (→ `FileSummary[]`), `addImportedFiles()`,
+  `removeImportedFile(i)`, `removeLastImportedFiles(n)`, `clearAllData()`, `loadDemoFiles()`,
+  `useCommissions()` / `getCommissions()` / `setCommissions()`.
+- **Import CSVs** (nav) opens a popover: *Import new file* + a list of previously imported
+  files, each with an **✕** to drop just that file's fills. The import success toast also has a
+  one-tap **Undo** (`removeLastImportedFiles`).
+- `src/lib/demoData.ts` — `demoFills()` builds a deterministic sample (two months of stock +
+  options trades, 2 left open); loaded as a single `ImportedFile` via `loadDemoFiles()`.
 
 ---
 
