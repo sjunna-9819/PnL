@@ -3,8 +3,6 @@ import { useEffect } from "react";
 import { loadServerState, saveServerState } from "@/lib/serverState";
 import { hydrateState, snapshotState, subscribeStore } from "@/lib/pnlStore";
 import { hydrateBenchmarks, snapshotBenchmarks, subscribeBenchmarks } from "@/lib/benchmarks";
-import { hydrateEarnings, snapshotEarnings, subscribeEarnings } from "@/lib/earnings";
-import type { EarningsInfo } from "@/lib/marketData";
 
 /**
  * Keeps the journal in sync with the server file (see `serverState.ts`).
@@ -27,7 +25,6 @@ function currentBlob(): string {
     v: BLOB_VERSION,
     ...snapshotState(),
     benchmarks: snapshotBenchmarks(),
-    earnings: snapshotEarnings(),
   });
 }
 
@@ -60,7 +57,6 @@ export function useCloudSync() {
               commissions?: Parameters<typeof hydrateState>[0]["commissions"];
               principal?: number;
               benchmarks?: Record<string, { date: string; close: number }[]>;
-              earnings?: Record<string, EarningsInfo>;
             };
             hydrateState({
               files: parsed.files ?? [],
@@ -68,7 +64,6 @@ export function useCloudSync() {
               ...(typeof parsed.principal === "number" ? { principal: parsed.principal } : {}),
             });
             hydrateBenchmarks(parsed.benchmarks ?? {});
-            hydrateEarnings(parsed.earnings ?? {});
             lastSent = currentBlob(); // don't immediately echo what we just loaded
           }
         } catch {
@@ -80,7 +75,6 @@ export function useCloudSync() {
       if (!alive) return;
       unsubs.push(subscribeStore(scheduleSave));
       unsubs.push(subscribeBenchmarks(scheduleSave));
-      unsubs.push(subscribeEarnings(scheduleSave));
       scheduleSave(); // push local data up on a fresh server file
     })();
 

@@ -1,18 +1,19 @@
 import { useSyncExternalStore } from "react";
 
-import type { EarningsInfo } from "@/lib/marketData";
+import type { EarningsCompany } from "@/lib/marketData";
 
 /**
- * Cached earnings dates per ticker (from Yahoo `quoteSummary`, see
- * `marketData.ts` → `fetchEarnings`). Keyed by uppercase symbol. Persisted to
- * `localStorage` and mirrored to the server file by the cross-device sync.
+ * Cache of the market-wide earnings calendar, one entry per calendar day
+ * (`"YYYY-MM-DD"` → the companies reporting that day). Filled by the `/er` page
+ * from `fetchEarningsDay`. Public market data, so it lives only in this
+ * browser's `localStorage` — not in the cross-device sync.
  */
 
-const KEY = "pnl-earnings-v1";
-/** Re-fetch a symbol if its cache is older than this (dates get confirmed / move). */
-export const EARNINGS_TTL_MS = 24 * 60 * 60 * 1000;
+const KEY = "pnl-earnings-cal-v1";
+const FUTURE_TTL_MS = 12 * 60 * 60 * 1000; // today / upcoming days may still change
 
-type Store = Record<string, EarningsInfo>;
+export type EarningsDay = { fetchedAt: number; companies: EarningsCompany[] };
+type Store = Record<string, EarningsDay>;
 
 let store: Store = {};
 let loaded = false;
@@ -36,34 +37,35 @@ function persist() {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(store));
   } catch {
-    /* quota */
+    /* quota — trim the oldest half and retry once */
+    try {
+      const keys = Object.keys(store).sort();
+      store = Object.fromEntries(
+        keys.slice(Math.floor(keys.length / 2)).map((k) => [k, store[k]!]),
+      );
+      window.localStorage.setItem(KEY, JSON.stringify(store));
+    } catch {
+      /* give up; keep it in memory */
+    }
   }
 }
 
-export function setEarnings(info: EarningsInfo) {
+/** A cached day is stale only if it is today-or-later and older than the TTL. */
+export function isDayFresh(date: string, day: EarningsDay | undefined): boolean {
+  if (!day) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  if (date < today) return true; // past days never change
+  return Date.now() - day.fetchedAt < FUTURE_TTL_MS;
+}
+
+export function setEarningsDay(date: string, companies: EarningsCompany[]) {
   load();
-  store = { ...store, [info.symbol.toUpperCase()]: info };
+  store = { ...store, [date]: { fetchedAt: Date.now(), companies } };
   persist();
   emit();
 }
 
-export function subscribeEarnings(cb: () => void): () => void {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
-}
-
-export function snapshotEarnings(): Store {
-  return load();
-}
-
-export function hydrateEarnings(next: Store) {
-  load();
-  store = { ...next };
-  persist();
-  emit();
-}
-
-export function useEarnings(): Store {
+export function useEarningsCalendar(): Store {
   return useSyncExternalStore(
     (cb) => {
       listeners.add(cb);

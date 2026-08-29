@@ -235,19 +235,21 @@ The calendar page itself has no header — it opens straight on the drop zone or
   jumps to `/?day=<first trading day>` (index route `validateSearch`).
 - **Symbol filter** + sort toggle (P&L / Name; click again to reverse direction) above the list.
 
-**`/er` — Earnings calendar**
-- One dated list of earnings report days across every ticker in the dataset — an **Upcoming**
-  section (next date first, relative "in N days", unconfirmed dates flagged `est.`) and a
-  **Recent** section (last ~4 quarters per ticker, newest first). Same date can list several
-  tickers.
-- Data: `fetchEarnings` server fn in `src/lib/marketData.ts` hits Yahoo `quoteSummary`
-  (`calendarEvents` + `earningsHistory`). Yahoo now needs a cookie + crumb — `yahooCrumb()`
-  fetches `finance.yahoo.com` for the `A1/A3` cookies then `/v1/test/getcrumb`, cached per
-  server process, refreshed on a 401/403. ETFs/indexes 404 → returned empty, shown as a
-  footnote.
-- `src/lib/earnings.ts` — `useSyncExternalStore` cache keyed by symbol, `localStorage`
-  `pnl-earnings-v1`, 24 h TTL, mirrored by the cross-device sync. The page fetches uncached /
-  stale symbols one at a time on mount.
+**`/er` — Earnings calendar (whole market)**
+- A **month grid** (Mon–Fri, same builder as Home) of *every* US company reporting that day —
+  not just tickers you trade. Each cell shows the count + the three biggest names; tickers you
+  hold are tinted and pinned at the bottom of the cell. `‹ ›` steps months, **Today** returns.
+- Click a day → a list below the grid, grouped **Before open / After close / Time TBD**, each
+  row = symbol, company, consensus EPS, market cap (sorted by market cap).
+- Data: `fetchEarningsDay(date)` server fn in `src/lib/marketData.ts` → Nasdaq's public
+  `api.nasdaq.com/api/calendar/earnings?date=` (free, no key, no crumb — just a UA header).
+  Yahoo's own market-wide earnings endpoint is crumb-gated and currently returns nothing, so
+  Nasdaq is the source here.
+- `src/lib/earnings.ts` — `useSyncExternalStore` cache keyed by **date**, `localStorage`
+  `pnl-earnings-cal-v1`. Past days are cached forever; today/future days have a 12 h TTL. The
+  page fetches the visible month's uncached weekdays one at a time (serialised via a ref lock
+  so switching months fast doesn't hammer Nasdaq). **Not** in the cross-device sync — it's
+  public data, cheap to refetch.
 
 **`/blog` — Trading journal (the "agent")**
 - `src/lib/blog.ts` is a **pure heuristics engine**, no network / no model. `analyze(data)`
