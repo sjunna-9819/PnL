@@ -239,22 +239,18 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
 
           <div className="mt-2 grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_340px]">
             <div className="flex flex-col overflow-hidden rounded-xl bg-card p-2 sm:p-3">
-              <div className="grid shrink-0 grid-cols-7 gap-2 pb-1.5 text-center text-[11px] font-medium tracking-wider text-muted-foreground md:grid-cols-8">
+              <div className="grid shrink-0 grid-cols-7 gap-2 pb-1.5 text-center text-[11px] font-medium tracking-wider text-muted-foreground">
                 {WEEKDAYS.map((d) => (
                   <div key={d}>{d}</div>
                 ))}
-                <div className="hidden md:block">WEEK</div>
               </div>
 
               <div className="flex flex-col gap-2 lg:min-h-0 lg:flex-1">
                 {monthDays.map((week, wi) => {
-                  const weekDays = week.filter((d): d is string => !!d);
-                  const weekHasData = weekDays.some((d) => totals.has(d));
-                  const weekPnl = weekDays.reduce((s, d) => s + (totals.get(d)?.pnl ?? 0), 0);
                   return (
                     <div
                       key={wi}
-                      className="grid grid-cols-7 gap-2 md:grid-cols-8 lg:min-h-0 lg:flex-1 lg:content-stretch"
+                      className="grid grid-cols-7 gap-2 lg:min-h-0 lg:flex-1 lg:content-stretch"
                     >
                       {week.map((day, di) => {
                         if (!day) return <div key={`e${wi}-${di}`} />;
@@ -294,21 +290,6 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                           </button>
                         );
                       })}
-                      <div className="hidden h-16 items-center justify-center gap-1 rounded-lg bg-secondary/40 p-1.5 sm:h-20 md:flex lg:h-full">
-                        {weekHasData ? (
-                          <span
-                            className={cn(
-                              "text-xs font-semibold tabular-nums",
-                              weekPnl > 0 && "text-profit",
-                              weekPnl < 0 && "text-loss",
-                            )}
-                          >
-                            ({fmtMoneyShort(weekPnl)})
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground/40">—</span>
-                        )}
-                      </div>
                     </div>
                   );
                 })}
