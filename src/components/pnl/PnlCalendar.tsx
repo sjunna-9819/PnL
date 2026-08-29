@@ -19,7 +19,7 @@ import {
   type InstrumentKind,
 } from "@/lib/pnl";
 
-const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI"];
 
 type DayTotal = { pnl: number; grossPnl: number; fees: number; trades: number };
 
@@ -79,13 +79,19 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
   const monthDays = useMemo(() => {
     const y = cursor.getFullYear();
     const m = cursor.getMonth();
-    const first = new Date(y, m, 1).getDay();
     const count = new Date(y, m + 1, 0).getDate();
-    const cells: (string | null)[] = Array.from({ length: first }, () => null);
-    for (let d = 1; d <= count; d++) cells.push(iso(y, m, d));
-    while (cells.length % 7) cells.push(null);
+    const firstDow = new Date(y, m, 1).getDay(); // 0=Sun … 6=Sat
+    // leading blanks so the 1st lands in its Mon–Fri column (0 if it's a weekend)
+    const lead = firstDow >= 1 && firstDow <= 5 ? firstDow - 1 : 0;
+    const cells: (string | null)[] = Array.from({ length: lead }, () => null);
+    for (let d = 1; d <= count; d++) {
+      const dow = new Date(y, m, d).getDay();
+      if (dow === 0 || dow === 6) continue; // skip weekends
+      cells.push(iso(y, m, d));
+    }
+    while (cells.length % 5) cells.push(null);
     const weeks: (string | null)[][] = [];
-    for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+    for (let i = 0; i < cells.length; i += 5) weeks.push(cells.slice(i, i + 5));
     return weeks;
   }, [cursor]);
 
@@ -239,7 +245,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
 
           <div className="mt-2 grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_340px]">
             <div className="flex flex-col overflow-hidden rounded-xl bg-card p-2 sm:p-3">
-              <div className="grid shrink-0 grid-cols-7 gap-2 pb-1.5 text-center text-[11px] font-medium tracking-wider text-muted-foreground">
+              <div className="grid shrink-0 grid-cols-5 gap-2 pb-1.5 text-center text-[11px] font-medium tracking-wider text-muted-foreground">
                 {WEEKDAYS.map((d) => (
                   <div key={d}>{d}</div>
                 ))}
@@ -250,7 +256,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                   return (
                     <div
                       key={wi}
-                      className="grid grid-cols-7 gap-2 lg:min-h-0 lg:flex-1 lg:content-stretch"
+                      className="grid grid-cols-5 gap-2 lg:min-h-0 lg:flex-1 lg:content-stretch"
                     >
                       {week.map((day, di) => {
                         if (!day) return <div key={`e${wi}-${di}`} />;
