@@ -271,12 +271,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                                 t && (positive ? "bg-profit-surface/70" : "bg-loss-surface/70"),
                                 day === today && "ring-1 ring-primary/60",
                                 selected === day &&
-                                  "z-10 scale-[1.05] shadow-xl ring-[3px] ring-foreground ring-offset-2 ring-offset-card",
-                                selected === day &&
-                                  t &&
-                                  (positive
-                                    ? "bg-profit/80 brightness-110"
-                                    : "bg-loss/80 brightness-110"),
+                                  "z-10 scale-[1.03] bg-background text-foreground shadow-xl ring-2 ring-foreground ring-offset-2 ring-offset-card",
                               )}
                             >
                               <span className="text-[11px] leading-none text-muted-foreground">
@@ -284,7 +279,13 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                               </span>
                               {t && (
                                 <span className="mt-auto leading-tight">
-                                  <span className="block text-xs font-semibold tabular-nums sm:text-sm">
+                                  <span
+                                    className={cn(
+                                      "block text-xs font-semibold tabular-nums sm:text-sm",
+                                      selected === day &&
+                                        (t.pnl >= 0 ? "text-profit" : "text-loss"),
+                                    )}
+                                  >
                                     {fmtMoneyShort(t.pnl)}
                                   </span>
                                   <span className="block text-[10px] opacity-70">
