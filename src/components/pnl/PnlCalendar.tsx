@@ -606,12 +606,21 @@ const BENCH_COLORS = [
 
 const AUTO_INDEXES = ["SPY", "QQQ", "NASDAQ", "DOW", "RUSSELL"];
 
+const DEFAULT_PRINCIPAL = 100_000;
+
 /** Full daily equity chart + index comparison, shown in the slide-up drawer. */
 function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   const benchmarks = useBenchmarks();
   const [shown, setShown] = useState<string[]>([]);
   const [chart, setChart] = useState<"line" | "bars">("line");
   const [fetching, setFetching] = useState<string | null>(null);
+  const [principal, setPrincipal] = useState<number>(() => {
+    try {
+      return Number(window.localStorage.getItem("pnl-principal")) || DEFAULT_PRINCIPAL;
+    } catch {
+      return DEFAULT_PRINCIPAL;
+    }
+  });
   const inFlight = useRef(false);
 
   const series = useMemo(() => equitySeries(totals), [totals]);
@@ -688,6 +697,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
         label: prettyDate(s.date).replace(/,\s*\d{4}$/, ""),
         cum: Math.round(s.cum),
         day: Math.round(s.day),
+        You: principal > 0 ? Number(((s.cum / principal) * 100).toFixed(2)) : 0,
       };
       for (const n of active) {
         const b = benchmarks[n]!;
@@ -701,10 +711,11 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
       return row;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [series, benchmarks, shown.join(","), firstDate]);
+  }, [series, benchmarks, shown.join(","), firstDate, principal]);
 
   const end = rows.at(-1)?.cum ?? 0;
   const stroke = end >= 0 ? "var(--color-profit)" : "var(--color-loss)";
+  const youPct = principal > 0 ? (end / principal) * 100 : 0;
 
   // label only the last point of a series
   const endLabel =
@@ -751,7 +762,25 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
             </button>
           ))}
         </div>
-        <span className="text-[10px] uppercase tracking-wider">Compare vs</span>
+        {principal > 0 && (
+          <span
+            className="flex items-center gap-1 rounded-md border border-transparent bg-secondary px-1.5 py-0.5 text-[11px] text-foreground"
+            title={`${fmtMoney(end)} on $${principal.toLocaleString()} principal`}
+          >
+            <span className="size-1.5 rounded-full" style={{ background: stroke }} />
+            You
+            <span
+              className={cn(
+                "font-semibold tabular-nums",
+                youPct >= 0 ? "text-profit" : "text-loss",
+              )}
+            >
+              {youPct >= 0 ? "+" : ""}
+              {youPct.toFixed(1)}%
+            </span>
+          </span>
+        )}
+        <span className="text-[10px] uppercase tracking-wider">vs</span>
         {Object.keys(benchmarks).map((name) => {
           const on = shown.includes(name);
           const finalPct = on ? (rows.at(-1)?.[name] as number | undefined) : undefined;
@@ -811,10 +840,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
         style={{ ["--glow" as string]: stroke }}
       >
         <ResponsiveContainer>
-          <ComposedChart
-            data={rows}
-            margin={{ top: 8, right: active.length ? 52 : 40, bottom: 0, left: 0 }}
-          >
+          <ComposedChart data={rows} margin={{ top: 8, right: 54, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="equity-full-fill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={stroke} stopOpacity={0.3} />
@@ -837,7 +863,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
               axisLine={false}
               tickFormatter={(v: number) => fmtMoneyShort(v)}
             />
-            {active.length > 0 && (
+            {(active.length > 0 || principal > 0) && (
               <YAxis
                 yAxisId="pct"
                 orientation="right"
@@ -863,7 +889,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
                   ? [fmtMoney(v), "Cumulative P&L"]
                   : key === "day"
                     ? [fmtMoney(v), "Day P&L"]
-                    : [`${v > 0 ? "+" : ""}${v}%`, key]
+                    : [`${v > 0 ? "+" : ""}${v}%`, key === "You" ? "You" : key]
               }
             />
             {chart === "line" ? (
@@ -883,6 +909,22 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
                   <Cell key={i} fill={r.day >= 0 ? "var(--color-profit)" : "var(--color-loss)"} />
                 ))}
               </Bar>
+            )}
+            {principal > 0 && chart === "line" && (
+              <Line
+                yAxisId="pct"
+                type="monotone"
+                dataKey="You"
+                stroke={stroke}
+                strokeWidth={2}
+                strokeDasharray="5 3"
+                dot={false}
+              >
+                <LabelList
+                  dataKey="You"
+                  content={endLabel(stroke, (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`)}
+                />
+              </Line>
             )}
             {active.map((name, i) => {
               const color = BENCH_COLORS[i % BENCH_COLORS.length]!;
@@ -906,6 +948,35 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
+
+      <p className="mt-2 text-center text-[11px]">
+        Return on{" "}
+        <span className="inline-flex items-center">
+          $
+          <input
+            type="number"
+            min={0}
+            step={1000}
+            defaultValue={principal || ""}
+            onChange={(e) => {
+              const v = Math.max(0, Number(e.target.value) || 0);
+              setPrincipal(v);
+              try {
+                window.localStorage.setItem("pnl-principal", String(v));
+              } catch {
+                /* ignore */
+              }
+            }}
+            className="w-24 border-b border-border bg-transparent text-center font-semibold text-foreground outline-none focus:border-foreground"
+          />
+        </span>{" "}
+        principal ={" "}
+        <span className={cn("font-bold", youPct >= 0 ? "text-profit" : "text-loss")}>
+          {youPct >= 0 ? "+" : ""}
+          {youPct.toFixed(2)}%
+        </span>
+        . Dashed line = your return %; solid lines = the indexes, both rebased from day one.
+      </p>
     </div>
   );
 }
@@ -949,11 +1020,6 @@ function InsightsPanel({ data, totals }: { data: Dataset; totals: Map<string, Da
           </DrawerTitle>
           <div className="px-3 pb-6 pt-1 sm:px-5">
             <EquityCurveFull totals={totals} />
-            <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              Your cumulative net P&amp;L (left, $) vs each index rebased to % from your first
-              trading day (right). SPY / QQQ / Nasdaq pull from Yahoo automatically (needs the app
-              served by a server — dev, <code>npm run preview</code>, or the Node server).
-            </p>
           </div>
         </DrawerContent>
       </Drawer>
