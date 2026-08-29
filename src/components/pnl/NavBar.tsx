@@ -32,7 +32,9 @@ const LINKS = [
   { to: "/blog", label: "Blog", exact: false },
 ] as const;
 
-const baseLink = "rounded-md px-3 py-1.5 text-sm font-medium transition-colors";
+// Plain text, no pill — same crispness as the bare icons on the right.
+const navLink = "text-sm font-medium text-muted-foreground transition-colors hover:text-foreground";
+const navLinkActive = "text-sm font-medium text-foreground";
 
 export function NavBar() {
   const data = useDataset();
@@ -43,14 +45,14 @@ export function NavBar() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
       <div className="flex h-14 w-full items-center justify-between gap-4 px-4 sm:px-6">
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-4">
           {LINKS.map((l) => (
             <Link
               key={l.to}
               to={l.to}
               activeOptions={{ exact: l.exact }}
-              className={`${baseLink} text-muted-foreground hover:text-foreground`}
-              activeProps={{ className: `${baseLink} bg-secondary text-foreground` }}
+              className={navLink}
+              activeProps={{ className: navLinkActive }}
             >
               {l.label}
             </Link>
