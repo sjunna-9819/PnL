@@ -57,14 +57,12 @@ export type DaySymbolRow = {
   fills: number; // number of executions on this day
 };
 
-
 export function instrumentKind(label: string): InstrumentKind {
   const u = label.toUpperCase();
   if (/\bCALL\b/.test(u)) return "call";
   if (/\bPUT\b/.test(u)) return "put";
   return "stock";
 }
-
 
 export type Dataset = {
   fills: Fill[];
@@ -271,7 +269,12 @@ export function parseStatement(text: string, fileName: string): ParsedFile {
       if (/\bbuy|bot|bto|btc/i.test(side) && qty < 0) qty = -qty;
       if (!qty) continue;
 
-      const type = iType >= 0 ? String(row[iType] ?? "").trim().toUpperCase() : "";
+      const type =
+        iType >= 0
+          ? String(row[iType] ?? "")
+              .trim()
+              .toUpperCase()
+          : "";
       const exp = iExp >= 0 ? String(row[iExp] ?? "").trim() : "";
       const strike = iStrike >= 0 ? String(row[iStrike] ?? "").trim() : "";
       const isOption = type === "PUT" || type === "CALL";
@@ -303,7 +306,10 @@ export function parseStatement(text: string, fileName: string): ParsedFile {
   }
 
   // Broker-reported "Profits and Losses" block: authoritative daily realized P/L.
-  const statementDate = fills.map((f) => f.date).sort().pop();
+  const statementDate = fills
+    .map((f) => f.date)
+    .sort()
+    .pop();
   const plBlock = blocks.find(
     (b) => /profits and losses/i.test(b.title) && b.header.some((h) => PL_DAY_KEYS.test(h)),
   );
@@ -599,7 +605,6 @@ export function dayRows(data: Dataset, date: string): DaySymbolRow[] {
         : "closed";
   }
 
-
   const rows = [...map.values()];
 
   // When some closes were carried in, trust the broker's per-symbol day P/L and
@@ -624,12 +629,19 @@ export function dayRows(data: Dataset, date: string): DaySymbolRow[] {
   return rows.sort((a, b) => b.pnl - a.pnl);
 }
 
-export function dailyTotals(
-  data: Dataset,
-): Map<string, { pnl: number; grossPnl: number; fees: number; trades: number }> {
-  const m = new Map<string, { pnl: number; grossPnl: number; fees: number; trades: number }>();
+export type DayTotal = {
+  pnl: number;
+  grossPnl: number;
+  fees: number;
+  trades: number;
+  wins: number;
+  losses: number;
+};
+
+export function dailyTotals(data: Dataset): Map<string, DayTotal> {
+  const m = new Map<string, DayTotal>();
   const ensure = (date: string) => {
-    const cur = m.get(date) ?? { pnl: 0, grossPnl: 0, fees: 0, trades: 0 };
+    const cur = m.get(date) ?? { pnl: 0, grossPnl: 0, fees: 0, trades: 0, wins: 0, losses: 0 };
     m.set(date, cur);
     return cur;
   };
@@ -637,6 +649,8 @@ export function dailyTotals(
     const cur = ensure(t.date);
     cur.grossPnl += t.pnl;
     cur.trades += 1;
+    if (t.pnl > 0) cur.wins += 1;
+    else if (t.pnl < 0) cur.losses += 1;
   }
   // Broker-reported daily totals win when available.
   for (const [date, bySymbol] of data.officialDayPnl) {

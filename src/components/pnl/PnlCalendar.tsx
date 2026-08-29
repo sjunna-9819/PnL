@@ -17,13 +17,12 @@ import {
   fmtMoney,
   fmtMoneyShort,
   instrumentKind,
+  type DayTotal,
   type Dataset,
   type InstrumentKind,
 } from "@/lib/pnl";
 
 const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI"];
-
-type DayTotal = { pnl: number; grossPnl: number; fees: number; trades: number };
 
 function iso(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -294,8 +293,9 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                                   <span className="block text-xs font-semibold tabular-nums sm:text-sm">
                                     {fmtMoneyShort(t.pnl)}
                                   </span>
-                                  <span className="block text-[10px]">
-                                    {t.trades} trade{t.trades === 1 ? "" : "s"}
+                                  <span className="flex gap-1.5 text-[10px] tabular-nums">
+                                    <span className="text-profit">{t.wins}W</span>
+                                    <span className="text-loss">{t.losses}L</span>
                                   </span>
                                 </span>
                               )}
