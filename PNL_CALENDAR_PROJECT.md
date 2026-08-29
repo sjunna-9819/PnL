@@ -167,8 +167,8 @@ Shared bits live in `src/components/pnl/shared.tsx` (`Stat`, `KindBadge`, `Trend
 a ▲/▼ glyph so gain/loss is not colour-only). Import feedback and clear/demo actions use
 `sonner` toasts (`<Toaster/>` mounted in `__root.tsx`).
 
-**Navigation** — a sticky `NavBar` (mounted in `__root.tsx`, so it's on every route) with the
-Aum logo linking home and three tabs: **Calendar** (`/`), **Ticker P/L** (`/tickers`),
+**Navigation** — a sticky `NavBar` (mounted in `__root.tsx`, so it's on every route): the
+wordmark links home, and three tabs — **Calendar** (`/`), **Ticker P/L** (`/tickers`),
 **Blog** (`/blog`). No more per-page back links or in-page nav buttons.
 
 **`/` — PnlCalendar**
