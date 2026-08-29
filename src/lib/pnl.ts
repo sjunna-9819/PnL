@@ -636,12 +636,21 @@ export type DayTotal = {
   trades: number;
   wins: number;
   losses: number;
+  breakeven: number;
 };
 
 export function dailyTotals(data: Dataset): Map<string, DayTotal> {
   const m = new Map<string, DayTotal>();
   const ensure = (date: string) => {
-    const cur = m.get(date) ?? { pnl: 0, grossPnl: 0, fees: 0, trades: 0, wins: 0, losses: 0 };
+    const cur = m.get(date) ?? {
+      pnl: 0,
+      grossPnl: 0,
+      fees: 0,
+      trades: 0,
+      wins: 0,
+      losses: 0,
+      breakeven: 0,
+    };
     m.set(date, cur);
     return cur;
   };
@@ -651,6 +660,7 @@ export function dailyTotals(data: Dataset): Map<string, DayTotal> {
     cur.trades += 1;
     if (t.pnl > 0) cur.wins += 1;
     else if (t.pnl < 0) cur.losses += 1;
+    else cur.breakeven += 1;
   }
   // Broker-reported daily totals win when available.
   for (const [date, bySymbol] of data.officialDayPnl) {

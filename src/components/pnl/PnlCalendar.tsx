@@ -293,9 +293,13 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                                   <span className="block text-xs font-semibold tabular-nums sm:text-sm">
                                     {fmtMoneyShort(t.pnl)}
                                   </span>
-                                  <span className="flex gap-1.5 text-[10px] tabular-nums">
+                                  <span className="flex flex-wrap items-baseline gap-x-1 text-[10px] tabular-nums">
+                                    <span className="text-muted-foreground">{t.trades}T</span>
                                     <span className="text-profit">{t.wins}W</span>
                                     <span className="text-loss">{t.losses}L</span>
+                                    {t.breakeven > 0 && (
+                                      <span className="text-muted-foreground">{t.breakeven}BE</span>
+                                    )}
                                   </span>
                                 </span>
                               )}
@@ -411,6 +415,14 @@ function DayDetail({
         <TrendArrow tone={dayPnl} className="size-3.5" />
         <span className={dayPnl >= 0 ? "text-profit" : "text-loss"}>{fmtMoney(dayPnl)}</span>
       </p>
+      {t && t.trades > 0 && (
+        <p className="text-[11px] text-muted-foreground">
+          {t.trades} trade{t.trades === 1 ? "" : "s"} (
+          <span className="text-profit">{t.wins}W</span>,{" "}
+          <span className="text-loss">{t.losses}L</span>
+          {t.breakeven > 0 && <>, {t.breakeven}BE</>})
+        </p>
+      )}
       {(t?.fees ?? 0) > 0 && (
         <p className="text-[10px] text-muted-foreground">
           net of ${(t?.fees ?? 0).toFixed(2)} commissions (gross {fmtMoney(t?.grossPnl ?? 0)})
