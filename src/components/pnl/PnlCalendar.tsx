@@ -314,11 +314,11 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
             {/* relative + absolute inner: the panel matches the calendar's height
                 exactly and scrolls internally instead of stretching the row. */}
             <aside className="relative hidden lg:block">
-              <div className="absolute inset-0 overflow-y-auto overscroll-contain rounded-xl bg-card p-4">
+              <div className="absolute inset-0 overflow-y-auto overscroll-contain rounded-xl bg-card p-3">
                 {selected ? (
                   <DayDetail data={data} selected={selected} totals={totals} />
                 ) : (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Select a day to see the tickers you played.
                   </p>
                 )}
@@ -360,34 +360,34 @@ function DayDetail({
 
   return (
     <>
-      <h3 className="text-xs font-semibold tracking-wider text-muted-foreground">
+      <h3 className="text-[10px] font-semibold tracking-wider text-muted-foreground">
         {prettyDate(selected).toUpperCase()}
       </h3>
-      <p className="mt-1 flex items-center gap-1 text-xl font-bold">
-        <TrendArrow tone={dayPnl} className="size-4" />
+      <p className="mt-0.5 flex items-center gap-1 text-base font-bold">
+        <TrendArrow tone={dayPnl} className="size-3.5" />
         <span className={dayPnl >= 0 ? "text-profit" : "text-loss"}>{fmtMoney(dayPnl)}</span>
       </p>
       {(t?.fees ?? 0) > 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[10px] text-muted-foreground">
           net of ${(t?.fees ?? 0).toFixed(2)} commissions (gross {fmtMoney(t?.grossPnl ?? 0)})
         </p>
       )}
       {rows.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">No trades on this day.</p>
+        <p className="mt-3 text-xs text-muted-foreground">No trades on this day.</p>
       ) : (
-        <ul className="mt-4 space-y-3">
+        <ul className="mt-3 space-y-2">
           {rows.map((r) => {
             const unit = r.kind === "stock" ? "shares" : "contracts";
             return (
-              <li key={r.key} className="rounded-xl bg-secondary/60 p-3">
+              <li key={r.key} className="rounded-lg bg-secondary/60 p-2 text-xs">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="flex items-center gap-2 font-semibold">
+                  <span className="flex items-center gap-1.5 font-semibold">
                     <KindBadge kind={r.kind} />
                     {r.label}
                   </span>
                   <span
                     className={cn(
-                      "font-semibold",
+                      "font-semibold tabular-nums",
                       r.pnl > 0 && "text-profit",
                       r.pnl < 0 && "text-loss",
                       r.pnl === 0 && "text-muted-foreground",
@@ -396,7 +396,7 @@ function DayDetail({
                     {r.pnl === 0 ? "—" : fmtMoney(r.pnl)}
                   </span>
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
                   {r.qty > 0 && (
                     <span>
                       {r.qty} {unit} closed
@@ -427,9 +427,11 @@ function DayDetail({
       )}
 
       {data.openPositions.length > 0 && (
-        <div className="mt-6 border-t border-border pt-4">
-          <h4 className="text-xs font-semibold tracking-wider text-muted-foreground">STILL OPEN</h4>
-          <ul className="mt-2 space-y-2 text-sm">
+        <div className="mt-4 border-t border-border pt-3">
+          <h4 className="text-[10px] font-semibold tracking-wider text-muted-foreground">
+            STILL OPEN
+          </h4>
+          <ul className="mt-1.5 space-y-1 text-[11px]">
             {data.openPositions.map((p) => {
               const kind = instrumentKind(p.label);
               const one = Math.abs(p.qty) === 1;
@@ -437,7 +439,7 @@ function DayDetail({
                 kind === "stock" ? (one ? "share" : "shares") : one ? "contract" : "contracts";
               return (
                 <li key={p.key} className="flex justify-between gap-3">
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5">
                     <KindBadge kind={kind} />
                     {p.label}{" "}
                     <span className="text-muted-foreground">
@@ -479,7 +481,7 @@ function StatusChip({
   return (
     <span
       className={cn(
-        "rounded-full px-2 py-0.5 text-[11px] font-medium",
+        "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
         status === "closed"
           ? "bg-secondary text-muted-foreground"
           : "bg-primary/20 text-primary-foreground",
