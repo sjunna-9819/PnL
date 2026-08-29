@@ -193,7 +193,7 @@ wordmark links home, and three tabs — **Calendar** (`/`), **Ticker P/L** (`/ti
   row to expand an accordion panel with the per-contract breakdown (badge, net P&L, quantity,
   days traded, W/L, carried-in, remaining open size) and a "View on calendar →" link that
   jumps to `/?day=<first trading day>` (index route `validateSearch`).
-- **Symbol filter** + sort toggle (P&L / Name / Volume) above the list.
+- **Symbol filter** + sort toggle (P&L / Name; click again to reverse direction) above the list.
 
 **`/blog` — Trading journal (the "agent")**
 - `src/lib/blog.ts` is a **pure heuristics engine**, no network / no model. `analyze(data)`

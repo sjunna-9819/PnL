@@ -24,13 +24,12 @@ export const Route = createFileRoute("/tickers")({
   component: TickersPage,
 });
 
-type SortKey = "pnl" | "name" | "volume";
+type SortKey = "pnl" | "name";
 type SortDir = "asc" | "desc";
 
 const SORTS: { key: SortKey; label: string; defaultDir: SortDir }[] = [
   { key: "pnl", label: "P&L", defaultDir: "desc" },
   { key: "name", label: "Name", defaultDir: "asc" },
-  { key: "volume", label: "Volume", defaultDir: "desc" },
 ];
 
 function groupVolume(g: SymbolGroup) {
@@ -77,7 +76,6 @@ function TickersPage() {
     const filtered = q ? groups.filter((g) => g.symbol.includes(q)) : groups;
     const sorted = [...filtered];
     if (sort === "name") sorted.sort((a, b) => a.symbol.localeCompare(b.symbol));
-    else if (sort === "volume") sorted.sort((a, b) => groupVolume(a) - groupVolume(b));
     else sorted.sort((a, b) => a.pnl - b.pnl);
     if (dir === "desc") sorted.reverse();
     return sorted;
