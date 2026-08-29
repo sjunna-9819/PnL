@@ -239,15 +239,11 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
 
           <div className="mt-2 grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_340px]">
             <div className="flex flex-col overflow-hidden rounded-xl bg-card p-2 sm:p-3">
-              <div className="flex shrink-0 gap-2 pb-1.5">
-                <div className="grid flex-1 grid-cols-7 gap-2 text-center text-[11px] font-medium tracking-wider text-muted-foreground">
-                  {WEEKDAYS.map((d) => (
-                    <div key={d}>{d}</div>
-                  ))}
-                </div>
-                <div className="hidden w-16 shrink-0 text-center text-[11px] font-medium tracking-wider text-muted-foreground md:block">
-                  WK
-                </div>
+              <div className="grid shrink-0 grid-cols-7 gap-2 pb-1.5 text-center text-[11px] font-medium tracking-wider text-muted-foreground md:grid-cols-8">
+                {WEEKDAYS.map((d) => (
+                  <div key={d}>{d}</div>
+                ))}
+                <div className="hidden md:block">WEEK</div>
               </div>
 
               <div className="flex flex-col gap-2 lg:min-h-0 lg:flex-1">
@@ -256,48 +252,52 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                   const weekHasData = weekDays.some((d) => totals.has(d));
                   const weekPnl = weekDays.reduce((s, d) => s + (totals.get(d)?.pnl ?? 0), 0);
                   return (
-                    <div key={wi} className="flex gap-2 lg:min-h-0 lg:flex-1">
-                      <div className="grid flex-1 grid-cols-7 gap-2">
-                        {week.map((day, di) => {
-                          if (!day) return <div key={`e${wi}-${di}`} />;
-                          const t = totals.get(day);
-                          const positive = (t?.pnl ?? 0) >= 0;
-                          return (
-                            <button
-                              key={day}
-                              onClick={() => setSelected(day)}
-                              className={cn(
-                                "flex h-16 flex-col overflow-hidden rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-all hover:border-primary/50 sm:h-20 lg:h-full",
-                                t && (positive ? "bg-profit-surface/60" : "bg-loss-surface/60"),
-                                day === today && "ring-1 ring-primary/60",
-                                selected === day &&
-                                  "z-10 scale-[1.03] shadow-xl ring-offset-2 ring-offset-card",
-                                selected === day &&
-                                  t &&
-                                  (positive
-                                    ? "bg-profit-surface ring-2 ring-profit"
-                                    : "bg-loss-surface ring-2 ring-loss"),
-                                selected === day && !t && "ring-2 ring-foreground",
-                              )}
-                            >
-                              <span className="text-[11px] font-medium leading-none text-foreground">
-                                {Number(day.slice(8))}
-                              </span>
-                              {t && (
-                                <span className="mt-auto leading-tight text-foreground">
-                                  <span className="block text-xs font-semibold tabular-nums sm:text-sm">
-                                    {fmtMoneyShort(t.pnl)}
-                                  </span>
-                                  <span className="block text-[10px]">
-                                    {t.trades} trade{t.trades === 1 ? "" : "s"}
-                                  </span>
+                    <div
+                      key={wi}
+                      className="grid grid-cols-7 gap-2 md:grid-cols-8 lg:min-h-0 lg:flex-1 lg:content-stretch"
+                    >
+                      {week.map((day, di) => {
+                        if (!day) return <div key={`e${wi}-${di}`} />;
+                        const t = totals.get(day);
+                        const positive = (t?.pnl ?? 0) >= 0;
+                        return (
+                          <button
+                            key={day}
+                            onClick={() => setSelected(day)}
+                            className={cn(
+                              "flex h-16 flex-col overflow-hidden rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-all hover:border-primary/50 sm:h-20 lg:h-full",
+                              t && (positive ? "bg-profit-surface/60" : "bg-loss-surface/60"),
+                              day === today && "ring-1 ring-primary/60",
+                              selected === day &&
+                                "z-10 scale-[1.03] shadow-xl ring-offset-2 ring-offset-card",
+                              selected === day &&
+                                t &&
+                                (positive
+                                  ? "bg-profit-surface ring-2 ring-profit"
+                                  : "bg-loss-surface ring-2 ring-loss"),
+                              selected === day && !t && "ring-2 ring-foreground",
+                            )}
+                          >
+                            <span className="text-[11px] font-medium leading-none text-foreground">
+                              {Number(day.slice(8))}
+                            </span>
+                            {t && (
+                              <span className="mt-auto leading-tight text-foreground">
+                                <span className="block text-xs font-semibold tabular-nums sm:text-sm">
+                                  {fmtMoneyShort(t.pnl)}
                                 </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="hidden w-16 shrink-0 flex-col justify-center rounded-lg bg-secondary/40 p-1 text-right md:flex">
+                                <span className="block text-[10px]">
+                                  {t.trades} trade{t.trades === 1 ? "" : "s"}
+                                </span>
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                      <div className="hidden h-16 flex-col justify-center rounded-lg bg-secondary/40 p-1.5 text-right sm:h-20 md:flex lg:h-full">
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          Week
+                        </span>
                         {weekHasData ? (
                           <span
                             className={cn(
