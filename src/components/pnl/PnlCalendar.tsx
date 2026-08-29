@@ -124,7 +124,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
   }, [data, totals, monthKey]);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
+    <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6">
       <input
         ref={inputRef}
         type="file"
@@ -168,33 +168,33 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
         </div>
       ) : (
         <>
-          <div className="mt-8 flex flex-col items-center gap-2">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="secondary"
-                size="icon"
-                aria-label="Previous month"
-                onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
-              >
-                <ChevronLeft />
-              </Button>
-              <h2 className="w-48 text-center text-xl font-semibold sm:w-56">
-                {cursor.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-              </h2>
-              <Button
-                variant="secondary"
-                size="icon"
-                aria-label="Next month"
-                onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
-              >
-                <ChevronRight />
-              </Button>
-            </div>
+          <div className="flex items-center justify-center gap-3">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="size-8"
+              aria-label="Previous month"
+              onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
+            >
+              <ChevronLeft />
+            </Button>
+            <h2 className="w-44 text-center text-base font-semibold">
+              {cursor.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            </h2>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="size-8"
+              aria-label="Next month"
+              onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
+            >
+              <ChevronRight />
+            </Button>
             {!isCurrentMonth && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-muted-foreground"
+                className="h-8 text-muted-foreground"
                 onClick={() => {
                   setCursor(new Date());
                   if (totals.has(today)) setSelected(today);
@@ -206,7 +206,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
           </div>
 
           {summary && (
-            <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
               <Stat label="Total P&L" value={fmtMoneyShort(summary.pnl)} tone={summary.pnl} />
               <Stat label="Commissions" value={`-$${summary.fees.toFixed(2)}`} />
               <Stat
@@ -217,17 +217,19 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
               <Stat label="Best day" value={fmtMoneyShort(summary.best)} tone={summary.best} />
               <Stat label="Worst day" value={fmtMoneyShort(summary.worst)} tone={summary.worst} />
               <Stat
-                label="Avg P&L / trade"
-                value={fmtMoney(summary.avgPerTrade)}
+                label="Avg / trade"
+                value={fmtMoneyShort(summary.avgPerTrade)}
                 tone={summary.avgPerTrade}
+                hint="Month P&L ÷ closed trades"
               />
               <Stat
-                label="Avg P&L / day"
-                value={fmtMoney(summary.avgPerDay)}
+                label="Avg / day"
+                value={fmtMoneyShort(summary.avgPerDay)}
                 tone={summary.avgPerDay}
+                hint="Month P&L ÷ trading days"
               />
               <Stat
-                label="Avg P&L / contract"
+                label="Avg / contract"
                 value={fmtMoney(summary.avgPerContract)}
                 tone={summary.avgPerContract}
                 hint="Month P&L ÷ contracts and shares closed this month"
@@ -235,27 +237,27 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
             </div>
           )}
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-            <div className="rounded-2xl bg-card p-3 sm:p-4">
-              <div className="flex gap-2 pb-2">
-                <div className="grid flex-1 grid-cols-7 gap-2 text-center text-xs font-medium tracking-wider text-muted-foreground">
+          <div className="mt-3 grid gap-4 lg:grid-cols-[1fr_340px]">
+            <div className="rounded-xl bg-card p-2 sm:p-3">
+              <div className="flex gap-1.5 pb-1.5">
+                <div className="grid flex-1 grid-cols-7 gap-1.5 text-center text-[11px] font-medium tracking-wider text-muted-foreground">
                   {WEEKDAYS.map((d) => (
                     <div key={d}>{d}</div>
                   ))}
                 </div>
-                <div className="hidden w-20 shrink-0 text-center text-xs font-medium tracking-wider text-muted-foreground md:block">
-                  WEEK
+                <div className="hidden w-16 shrink-0 text-center text-[11px] font-medium tracking-wider text-muted-foreground md:block">
+                  WK
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {monthDays.map((week, wi) => {
                   const weekDays = week.filter((d): d is string => !!d);
                   const weekHasData = weekDays.some((d) => totals.has(d));
                   const weekPnl = weekDays.reduce((s, d) => s + (totals.get(d)?.pnl ?? 0), 0);
                   return (
-                    <div key={wi} className="flex gap-2">
-                      <div className="grid flex-1 grid-cols-7 gap-2">
+                    <div key={wi} className="flex gap-1.5">
+                      <div className="grid flex-1 grid-cols-7 gap-1.5">
                         {week.map((day, di) => {
                           if (!day) return <div key={`e${wi}-${di}`} />;
                           const t = totals.get(day);
@@ -265,22 +267,21 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                               key={day}
                               onClick={() => setSelected(day)}
                               className={cn(
-                                "flex h-20 flex-col rounded-xl border border-transparent bg-secondary/60 p-2 text-left text-sm transition-colors hover:border-primary/50 sm:h-24",
+                                "flex h-14 flex-col rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-colors hover:border-primary/50 sm:h-[4.25rem]",
                                 t && (positive ? "bg-profit-surface/70" : "bg-loss-surface/70"),
                                 day === today && "ring-2 ring-primary/60",
                                 selected === day && "border-foreground/70",
                               )}
                             >
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-[11px] leading-none text-muted-foreground">
                                 {Number(day.slice(8))}
                               </span>
                               {t && (
-                                <span className="mt-auto">
-                                  <span className="flex items-center gap-0.5 font-semibold">
-                                    <TrendArrow tone={t.pnl} className="size-3 shrink-0" />
-                                    <span className="truncate">{fmtMoney(t.pnl)}</span>
+                                <span className="mt-auto leading-tight">
+                                  <span className="block text-xs font-semibold tabular-nums sm:text-sm">
+                                    {fmtMoneyShort(t.pnl)}
                                   </span>
-                                  <span className="block text-xs opacity-80">
+                                  <span className="block text-[10px] opacity-70">
                                     {t.trades} trade{t.trades === 1 ? "" : "s"}
                                   </span>
                                 </span>
@@ -289,22 +290,17 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                           );
                         })}
                       </div>
-                      <div className="hidden w-20 shrink-0 flex-col justify-center rounded-xl bg-secondary/40 p-2 text-right md:flex">
+                      <div className="hidden w-16 shrink-0 flex-col justify-center rounded-lg bg-secondary/40 p-1 text-right md:flex">
                         {weekHasData ? (
-                          <>
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                              Week
-                            </span>
-                            <span
-                              className={cn(
-                                "text-sm font-semibold",
-                                weekPnl > 0 && "text-profit",
-                                weekPnl < 0 && "text-loss",
-                              )}
-                            >
-                              {fmtMoneyShort(weekPnl)}
-                            </span>
-                          </>
+                          <span
+                            className={cn(
+                              "text-xs font-semibold tabular-nums",
+                              weekPnl > 0 && "text-profit",
+                              weekPnl < 0 && "text-loss",
+                            )}
+                          >
+                            {fmtMoneyShort(weekPnl)}
+                          </span>
                         ) : (
                           <span className="text-xs text-muted-foreground/40">—</span>
                         )}
@@ -315,7 +311,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
               </div>
             </div>
 
-            <aside className="hidden rounded-2xl bg-card p-5 lg:block">
+            <aside className="hidden rounded-xl bg-card p-4 lg:block">
               {selected ? (
                 <DayDetail data={data} selected={selected} totals={totals} />
               ) : (
@@ -363,8 +359,8 @@ function DayDetail({
       <h3 className="text-xs font-semibold tracking-wider text-muted-foreground">
         {prettyDate(selected).toUpperCase()}
       </h3>
-      <p className="mt-1 flex items-center gap-1 text-2xl font-bold">
-        <TrendArrow tone={dayPnl} className="size-5" />
+      <p className="mt-1 flex items-center gap-1 text-xl font-bold">
+        <TrendArrow tone={dayPnl} className="size-4" />
         <span className={dayPnl >= 0 ? "text-profit" : "text-loss"}>{fmtMoney(dayPnl)}</span>
       </p>
       {(t?.fees ?? 0) > 0 && (

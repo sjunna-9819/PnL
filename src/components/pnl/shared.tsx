@@ -21,19 +21,19 @@ export function Stat({
   hint?: string;
 }) {
   return (
-    <div className="rounded-2xl bg-card p-5" title={hint}>
+    <div className="rounded-xl bg-card px-3 py-2.5" title={hint}>
       <p
         className={cn(
-          "flex items-center gap-1 text-2xl font-bold",
+          "flex items-center gap-1 text-base font-bold tabular-nums",
           tone !== undefined && tone > 0 && "text-profit",
           tone !== undefined && tone < 0 && "text-loss",
         )}
       >
-        {tone !== undefined && <TrendArrow tone={tone} className="size-5" />}
+        {tone !== undefined && <TrendArrow tone={tone} className="size-3.5" />}
         {value}
       </p>
-      <p className="mt-1 text-xs font-medium tracking-wider text-muted-foreground">
-        {label.toUpperCase()}
+      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
       </p>
     </div>
   );
