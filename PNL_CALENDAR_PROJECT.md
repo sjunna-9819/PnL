@@ -167,14 +167,16 @@ Shared bits live in `src/components/pnl/shared.tsx` (`Stat`, `KindBadge`, `Trend
 a ▲/▼ glyph so gain/loss is not colour-only). Import feedback and clear/demo actions use
 `sonner` toasts (`<Toaster/>` mounted in `__root.tsx`).
 
-**Navigation** — a sticky `NavBar` (mounted in `__root.tsx`, so it's on every route): three
-tabs — **Home** (`/`, the calendar), **Ticker P/L** (`/tickers`), **Blog** (`/blog`). No
-wordmark, no per-page back links or in-page nav buttons.
+**Navigation** — a sticky `NavBar` (mounted in `__root.tsx`, so it's on every route). Left:
+tabs **Home** (`/`, the calendar), **Ticker P/L** (`/tickers`), **Blog** (`/blog`). Right:
+**Import CSVs**, the commission-settings gear, and **Clear** (with a confirm dialog, shown
+only when data is loaded). The import/clear logic lives in `src/lib/import.ts`
+(`importStatements`, `clearStatements`) so the nav and the empty-state drop zone share it.
+The calendar page itself has no header — it opens straight on the drop zone or the month grid.
 
 **`/` — PnlCalendar**
-- Import button + full-page drag-and-drop, multi-file. Empty state names the supported
-  brokers and offers **Load demo data**.
-- All-time strip under the title: net P&L, trade count, trading days, first date.
+- No page header. Empty state = a drag-and-drop zone that names the supported brokers and
+  offers **Load demo data**; import itself is in the nav bar.
 - Month navigation with a **This month** shortcut (shown when off the current month); the
   current date gets a ring; each day cell tinted `profit-surface` / `loss-surface`, showing
   net P&L and trade count.
@@ -182,10 +184,10 @@ wordmark, no per-page back links or in-page nav buttons.
 - Month stats: Total P&L, Commissions, **Green days** (% of trading days that closed
   positive), Best day, Worst day, Avg P&L / trade (month P&L ÷ closed trades), Avg P&L / day
   (month P&L ÷ trading days), Avg P&L / contract (month P&L ÷ contracts+shares closed).
-- Commission inputs live in a gear **popover** in the header.
+- Commission inputs live in a gear **popover** in the nav bar; "Clear" (also in the nav) prompts
+  an **alert dialog** before wiping the dataset.
 - Day detail (date, net P&L with gross/fee line, per-instrument rows, **STILL OPEN**
   section) renders in the right sidebar on `lg+` and as a bottom **drawer** on mobile.
-- "Clear" prompts an **alert dialog** before wiping the dataset.
 
 **`/tickers` — Ticker P&L**
 - Stats: Total P&L, Commissions, Green symbols, Best symbol.

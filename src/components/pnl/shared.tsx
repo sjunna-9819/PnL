@@ -39,6 +39,33 @@ export function Stat({
   );
 }
 
+export function FeeInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <label className="text-xs text-muted-foreground">
+      <span className="block">{label}</span>
+      <span className="mt-1 flex items-center gap-1 rounded-lg bg-secondary/60 px-2 py-1 text-sm text-foreground">
+        $
+        <input
+          type="number"
+          min={0}
+          step="0.01"
+          value={value}
+          onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
+          className="w-20 bg-transparent outline-none"
+        />
+      </span>
+    </label>
+  );
+}
+
 export function KindBadge({ kind }: { kind: InstrumentKind }) {
   const map = {
     call: { text: "C", cls: "bg-profit/20 text-profit", title: "Call option" },

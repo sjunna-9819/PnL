@@ -1,49 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  CalendarClock,
-  ChevronLeft,
-  ChevronRight,
-  Settings2,
-  Sparkles,
-  Trash2,
-  Upload,
-} from "lucide-react";
+import { CalendarClock, ChevronLeft, ChevronRight, Sparkles, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import {
-  getCommissions,
-  setCommissions,
-  setDataset,
-  useCommissions,
-  useDataset,
-} from "@/lib/pnlStore";
+import { setDataset, useDataset } from "@/lib/pnlStore";
 import { demoDataset } from "@/lib/demoData";
+import { importStatements } from "@/lib/import";
 import { KindBadge, Stat, TrendArrow } from "@/components/pnl/shared";
 import {
-  buildDataset,
   dailyTotals,
   dayRows,
   fmtMoney,
   fmtMoneyShort,
-  parseStatement,
   instrumentKind,
   type Dataset,
-  type Fill,
   type InstrumentKind,
 } from "@/lib/pnl";
 
@@ -71,76 +43,32 @@ function prettyDate(dateStr: string) {
 
 export function PnlCalendar({ initialDay }: { initialDay?: string | undefined }) {
   const data = useDataset();
-  const comm = useCommissions();
   const isMobile = useIsMobile();
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const today = todayKey();
 
-  // Jump to a requested day (from /tickers) or the latest day once data loads.
+  const newestDate = data ? (data.fills[data.fills.length - 1]?.date ?? null) : null;
+  const hasInitialDay = !!(initialDay && data?.fills.some((f) => f.date === initialDay));
+  const initedRef = useRef(false);
+
+  // On first data load jump to the requested day (from /tickers), and whenever a
+  // later statement is imported jump to its newest day.
   useEffect(() => {
-    if (!data || selected) return;
-    const target =
-      initialDay && data.fills.some((f) => f.date === initialDay)
-        ? initialDay
-        : data.fills[data.fills.length - 1]?.date;
-    if (!target) return;
+    if (!newestDate) return;
+    const target = !initedRef.current && hasInitialDay ? initialDay! : newestDate;
+    initedRef.current = true;
     const [y, m] = target.split("-").map(Number);
     setCursor(new Date(y!, m! - 1, 1));
     setSelected(target);
-  }, [data, selected, initialDay]);
-
-  function jumpTo(dateStr: string) {
-    const [y, m] = dateStr.split("-").map(Number);
-    setCursor(new Date(y!, m! - 1, 1));
-    setSelected(dateStr);
-  }
-
-  async function ingest(fileList: FileList | null) {
-    if (!fileList?.length) return;
-    const files = Array.from(fileList);
-    const all: Fill[] = data ? [...data.fills] : [];
-    const names = data ? [...data.files] : [];
-    const official = new Map(data ? data.officialDayPnl : []);
-    for (const file of files) {
-      const text = await file.text();
-      const parsed = parseStatement(text, file.name);
-      all.push(...parsed.fills);
-      for (const [date, bySymbol] of parsed.officialDayPnl) official.set(date, bySymbol);
-      names.push(file.name);
-    }
-    const next = buildDataset(all, names, official, getCommissions());
-
-    if (next.fills.length === (data?.fills.length ?? 0)) {
-      toast.error("No trades found in that file", {
-        description: "Expecting a broker Account Statement export (Thinkorswim / Schwab).",
-      });
-      return;
-    }
-
-    setDataset(next);
-    toast.success(`Imported ${next.fills.length - (data?.fills.length ?? 0)} new fills`, {
-      description: `${next.closed.length} closed trades matched · ${next.openPositions.length} still open.`,
-    });
-    const last = next.fills[next.fills.length - 1];
-    if (last) jumpTo(last.date);
-  }
+  }, [newestDate, initialDay, hasInitialDay]);
 
   function loadDemo() {
-    const d = demoDataset();
-    setDataset(d);
-    const last = d.fills[d.fills.length - 1];
-    if (last) jumpTo(last.date);
+    setDataset(demoDataset());
     toast.success("Loaded demo data", {
       description: "A sample of stock and options trades across two months. Clear it any time.",
     });
-  }
-
-  function clearAll() {
-    setDataset(null);
-    setSelected(null);
-    toast("Cleared all imported data");
   }
 
   const totals = useMemo<Map<string, DayTotal>>(
@@ -195,111 +123,18 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
     };
   }, [data, totals, monthKey]);
 
-  const allTime = useMemo(() => {
-    if (!data) return null;
-    const dates = [...totals.keys()].sort();
-    const values = [...totals.values()];
-    return {
-      pnl: values.reduce((s, v) => s + v.pnl, 0),
-      trades: values.reduce((s, v) => s + v.trades, 0),
-      days: dates.length,
-      since: dates[0] ?? null,
-    };
-  }, [data, totals]);
-
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Calendar</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Import a broker CSV export — columns are matched automatically.
-          </p>
-          {allTime && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              All-time{" "}
-              <span
-                className={cn(
-                  "font-semibold",
-                  allTime.pnl > 0 && "text-profit",
-                  allTime.pnl < 0 && "text-loss",
-                )}
-              >
-                {fmtMoney(allTime.pnl)}
-              </span>{" "}
-              net · {allTime.trades} trades · {allTime.days} trading days
-              {allTime.since ? ` · since ${prettyDate(allTime.since)}` : ""}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => inputRef.current?.click()}>
-            <Upload /> Import CSVs
-          </Button>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="secondary" size="icon" title="Commission settings">
-                <Settings2 />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-auto max-w-[90vw]">
-              <p className="text-xs font-medium tracking-wider text-muted-foreground">
-                BROKER COMMISSIONS
-                <span className="mt-1 block max-w-xs text-[11px] font-normal normal-case tracking-normal">
-                  Used when the statement has no commission column.
-                </span>
-              </p>
-              <div className="mt-3 flex flex-wrap gap-3">
-                <FeeInput
-                  label="Per contract"
-                  value={comm.perContract}
-                  onChange={(v) => setCommissions({ ...comm, perContract: v })}
-                />
-                <FeeInput
-                  label="Per share"
-                  value={comm.perShare}
-                  onChange={(v) => setCommissions({ ...comm, perShare: v })}
-                />
-                <FeeInput
-                  label="Per trade"
-                  value={comm.perTrade}
-                  onChange={(v) => setCommissions({ ...comm, perTrade: v })}
-                />
-              </div>
-            </PopoverContent>
-          </Popover>
-          {data && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="secondary">
-                  <Trash2 /> Clear
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Clear all imported data?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Every fill is removed from this browser. Your CSV files are untouched, but
-                    you&apos;ll need to re-import them to see the calendar again.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Keep it</AlertDialogCancel>
-                  <AlertDialogAction onClick={clearAll}>Clear everything</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-        </div>
-      </header>
-
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
       <input
         ref={inputRef}
         type="file"
         accept=".csv,text/csv"
         multiple
         className="hidden"
-        onChange={(e) => void ingest(e.target.files)}
+        onChange={(e) => {
+          void importStatements(e.target.files, data);
+          e.target.value = "";
+        }}
       />
 
       {!data ? (
@@ -307,10 +142,10 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
-            void ingest(e.dataTransfer.files);
+            void importStatements(e.dataTransfer.files, data);
           }}
           onClick={() => inputRef.current?.click()}
-          className="mt-8 cursor-pointer rounded-2xl border border-dashed border-border p-16 text-center transition-colors hover:border-primary/60 sm:p-20"
+          className="mt-4 cursor-pointer rounded-2xl border border-dashed border-border p-16 text-center transition-colors hover:border-primary/60 sm:p-20"
         >
           <Upload className="mx-auto size-8 text-muted-foreground" />
           <h2 className="mt-4 text-lg font-semibold">Drop your CSVs here</h2>
@@ -619,33 +454,6 @@ function DayDetail({
         </div>
       )}
     </>
-  );
-}
-
-function FeeInput({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <label className="text-xs text-muted-foreground">
-      <span className="block">{label}</span>
-      <span className="mt-1 flex items-center gap-1 rounded-lg bg-secondary/60 px-2 py-1 text-sm text-foreground">
-        $
-        <input
-          type="number"
-          min={0}
-          step="0.01"
-          value={value}
-          onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
-          className="w-20 bg-transparent outline-none"
-        />
-      </span>
-    </label>
   );
 }
 
