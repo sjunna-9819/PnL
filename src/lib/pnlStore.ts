@@ -202,32 +202,65 @@ export function clearAllData() {
   commit();
 }
 
-/** JSON backup of every imported file (same shape as the localStorage blob). */
-export function serializeFiles(): { json: string; files: number; fills: number } {
-  load();
-  const json = JSON.stringify(
-    {
-      v: 2 as const,
-      files: files.map((f) => ({
-        name: f.name,
-        fills: f.fills,
-        official: [...f.official].map(([d, m]) => [d, [...m]]),
-      })),
-    },
-    null,
-    2,
-  );
-  return { json, files: files.length, fills: files.reduce((s, f) => s + f.fills.length, 0) };
+function hms(ts: number): string {
+  const s = (((ts % 86400) + 86400) % 86400) | 0;
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p((s / 3600) | 0)}:${p(((s % 3600) / 60) | 0)}:${p(s % 60)}`;
 }
 
-/** Restore a JSON backup (v1 or v2), appending its files to the current set. */
-export function addSerializedFiles(json: string): number {
+const csvCell = (v: string | number) => {
+  const s = String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+/**
+ * Flat CSV of every imported execution, in a layout `parseStatement` can read
+ * back. Note: the broker's authoritative daily P/L block is not carried in CSV,
+ * so a re-import is pure FIFO.
+ */
+export function serializeFillsCsv(): { csv: string; fills: number } {
   load();
-  const restored = migrate(JSON.parse(json));
-  files = [...files, ...restored];
-  loaded = true;
-  commit();
-  return restored.length;
+  const header = [
+    "Exec Time",
+    "Symbol",
+    "Side",
+    "Qty",
+    "Price",
+    "Type",
+    "Exp",
+    "Strike",
+    "Pos Effect",
+    "Commissions & Fees",
+    "Source",
+  ];
+  const rows = [header.join(",")];
+  const all = files.flatMap((f) => f.fills).sort((a, b) => a.ts - b.ts);
+  for (const f of all) {
+    // label is "SYM [EXP] STRIKE TYPE" for options (exp may be absent), else "SYM"
+    const parts = f.label.split(" ");
+    const isOpt = f.multiplier > 1;
+    const type = isOpt ? (parts.at(-1) ?? "") : "STOCK";
+    const strike = isOpt && parts.length >= 3 ? (parts.at(-2) ?? "") : "";
+    const exp = isOpt && parts.length >= 4 ? (parts[1] ?? "") : "";
+    rows.push(
+      [
+        `${f.date} ${hms(f.ts)}`,
+        f.symbol,
+        f.qty >= 0 ? "BUY" : "SELL",
+        f.qty,
+        f.price,
+        type,
+        exp,
+        strike,
+        f.posEffect === "open" ? "TO OPEN" : f.posEffect === "close" ? "TO CLOSE" : "",
+        f.csvFee || "",
+        f.source,
+      ]
+        .map(csvCell)
+        .join(","),
+    );
+  }
+  return { csv: rows.join("\n"), fills: all.length };
 }
 
 /** Replace everything with a not-file-backed dataset used only by the demo. */

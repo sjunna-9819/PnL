@@ -24,7 +24,7 @@ import {
   useDataset,
   useImportedFiles,
 } from "@/lib/pnlStore";
-import { clearStatements, downloadBackup, importStatements } from "@/lib/import";
+import { clearStatements, downloadCsv, importStatements } from "@/lib/import";
 
 const LINKS = [
   { to: "/", label: "Home", exact: true },
@@ -61,7 +61,7 @@ export function NavBar() {
           <input
             ref={inputRef}
             type="file"
-            accept=".csv,text/csv,.json,application/json"
+            accept=".csv,text/csv"
             multiple
             className="hidden"
             onChange={(e) => {
@@ -72,7 +72,7 @@ export function NavBar() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="icon" title="Import statements">
+              <Button variant="ghost" size="icon" title="Import statements">
                 <Upload />
               </Button>
             </PopoverTrigger>
@@ -127,10 +127,10 @@ export function NavBar() {
 
           {data && (
             <Button
-              variant="secondary"
+              variant="ghost"
               size="icon"
-              title="Download backup (.json)"
-              onClick={downloadBackup}
+              title="Download all fills (.csv)"
+              onClick={downloadCsv}
             >
               <Download />
             </Button>
