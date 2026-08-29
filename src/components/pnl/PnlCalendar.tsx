@@ -127,7 +127,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
   }, [data, totals, monthKey]);
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col px-4 py-3 sm:px-6 lg:h-[calc(100dvh-3.5rem)] lg:overflow-hidden">
+    <div className="flex w-full flex-col px-4 py-3 sm:px-6 lg:h-[calc(100dvh-3.5rem)] lg:overflow-hidden">
       <input
         ref={inputRef}
         type="file"
