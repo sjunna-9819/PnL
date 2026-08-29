@@ -1,7 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { CalendarClock, ChevronLeft, ChevronRight, Sparkles, Upload } from "lucide-react";
+import {
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  Sparkles,
+  Upload,
+} from "lucide-react";
 import { toast } from "sonner";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -502,15 +519,17 @@ function gradeChip(grade: string) {
 }
 
 /** Inline-SVG cumulative net-P&L curve (equity curve). */
+function equitySeries(totals: Map<string, DayTotal>) {
+  const daily = [...totals.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  let cum = 0;
+  return daily.map(([date, v]) => {
+    cum += v.pnl;
+    return { date, cum, day: v.pnl };
+  });
+}
+
 function EquityCurve({ totals }: { totals: Map<string, DayTotal> }) {
-  const pts = useMemo(() => {
-    const daily = [...totals.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-    let cum = 0;
-    return daily.map(([date, v]) => {
-      cum += v.pnl;
-      return { date, cum };
-    });
-  }, [totals]);
+  const pts = useMemo(() => equitySeries(totals), [totals]);
 
   if (pts.length < 2) return null;
 
@@ -565,7 +584,71 @@ function EquityCurve({ totals }: { totals: Map<string, DayTotal> }) {
   );
 }
 
+/** Full daily equity chart shown in the slide-up drawer. */
+function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
+  const rows = useMemo(
+    () =>
+      equitySeries(totals).map((p) => ({
+        label: prettyDate(p.date).replace(/,\s*\d{4}$/, ""),
+        cum: Math.round(p.cum),
+      })),
+    [totals],
+  );
+  const end = rows.at(-1)?.cum ?? 0;
+  const stroke = end >= 0 ? "var(--color-profit)" : "var(--color-loss)";
+
+  return (
+    <div className="h-[46vh] w-full text-muted-foreground">
+      <ResponsiveContainer>
+        <AreaChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id="equity-full-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={stroke} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={stroke} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke="currentColor" strokeOpacity={0.1} vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={{ fontSize: 10, fill: "currentColor" }}
+            tickLine={false}
+            axisLine={false}
+            minTickGap={28}
+          />
+          <YAxis
+            width={56}
+            tick={{ fontSize: 10, fill: "currentColor" }}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(v: number) => fmtMoneyShort(v)}
+          />
+          <ReferenceLine y={0} stroke="currentColor" strokeOpacity={0.3} />
+          <Tooltip
+            cursor={{ stroke: "currentColor", strokeOpacity: 0.3 }}
+            contentStyle={{
+              background: "var(--color-card)",
+              border: "1px solid var(--color-border)",
+              borderRadius: 8,
+              fontSize: 12,
+            }}
+            labelStyle={{ color: "var(--color-muted-foreground)" }}
+            formatter={(v: number) => [fmtMoney(v), "Cumulative P&L"]}
+          />
+          <Area
+            type="monotone"
+            dataKey="cum"
+            stroke={stroke}
+            strokeWidth={2}
+            fill="url(#equity-full-fill)"
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 function InsightsPanel({ data, totals }: { data: Dataset; totals: Map<string, DayTotal> }) {
+  const [curveOpen, setCurveOpen] = useState(false);
   const a = useMemo(() => analyze(data), [data]);
   const m = a.m;
   const pf = m.profitFactor === Infinity ? "∞" : m.profitFactor.toFixed(2);
@@ -584,12 +667,33 @@ function InsightsPanel({ data, totals }: { data: Dataset; totals: Map<string, Da
           Full review →
         </Link>
       </div>
-      <div className="mt-1.5 flex items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Equity curve</p>
-          <EquityCurve totals={totals} />
-        </div>
-      </div>
+      <button
+        onClick={() => setCurveOpen(true)}
+        className="mt-1.5 block w-full rounded-md text-left transition-colors hover:bg-secondary/30"
+        title="Open the full daily equity curve"
+      >
+        <p className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-muted-foreground">
+          Equity curve <Maximize2 className="size-2.5" />
+        </p>
+        <EquityCurve totals={totals} />
+      </button>
+
+      <Drawer open={curveOpen} onOpenChange={setCurveOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerTitle className="px-5 pb-1 pt-3 text-sm font-semibold">
+            Equity curve —{" "}
+            <span className={m.net >= 0 ? "text-profit" : "text-loss"}>{fmtMoney(m.net)}</span> net
+          </DrawerTitle>
+          <div className="px-3 pb-6 pt-1 sm:px-5">
+            <EquityCurveFull totals={totals} />
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              Cumulative net P&amp;L, day by day. Index comparison (SPY / QQQ / Nasdaq) needs a
+              price feed — not wired yet.
+            </p>
+          </div>
+        </DrawerContent>
+      </Drawer>
+
       <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-9">
         <Stat label="Net P&L" value={fmtMoneyShort(m.net)} tone={m.net} />
         <Stat label="Trades" value={String(m.tradeCount)} />
