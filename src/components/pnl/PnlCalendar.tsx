@@ -23,6 +23,20 @@ import {
 } from "@/lib/pnl";
 
 const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI"];
+const MONTHS_ABBR = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 function iso(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -46,6 +60,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
   const data = useDataset();
   const isMobile = useIsMobile();
   const [cursor, setCursor] = useState(() => new Date());
+  const [view, setView] = useState<"month" | "year">("month");
   const [selected, setSelected] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const today = todayKey();
@@ -97,15 +112,41 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
   }, [cursor]);
 
   const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
-  const isCurrentMonth = today.startsWith(monthKey);
+  const yearKey = String(cursor.getFullYear());
+  const period = view === "month" ? monthKey : yearKey;
+  const isCurrentPeriod = today.startsWith(period);
+
+  const yearCols = useMemo(() => {
+    const y = cursor.getFullYear();
+    const out: { monthLabel: string | null; days: (string | null)[] }[] = [];
+    let week: (string | null)[] = [null, null, null, null, null];
+    let monthLabel: string | null = null;
+    const flush = () => {
+      if (week.some(Boolean)) out.push({ monthLabel, days: week });
+      week = [null, null, null, null, null];
+      monthLabel = null;
+    };
+    const d = new Date(y, 0, 1);
+    while (d.getFullYear() === y) {
+      const dow = d.getDay();
+      if (dow === 1 && week.some(Boolean)) flush();
+      if (dow >= 1 && dow <= 5) {
+        week[dow - 1] = iso(y, d.getMonth(), d.getDate());
+        if (d.getDate() <= 5 && monthLabel === null) monthLabel = MONTHS_ABBR[d.getMonth()]!;
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    flush();
+    return out;
+  }, [cursor]);
 
   const summary = useMemo(() => {
     if (!data) return null;
-    const inMonth = [...totals.entries()].filter(([d]) => d.startsWith(monthKey));
+    const inMonth = [...totals.entries()].filter(([d]) => d.startsWith(period));
     const pnl = inMonth.reduce((s, [, v]) => s + v.pnl, 0);
     const trades = inMonth.reduce((s, [, v]) => s + v.trades, 0);
     // Options and stock kept separate: contracts vs shares.
-    const monthClosed = data.closed.filter((t) => t.date.startsWith(monthKey));
+    const monthClosed = data.closed.filter((t) => t.date.startsWith(period));
     const opt = monthClosed.filter((t) => instrumentKind(t.label) !== "stock");
     const stk = monthClosed.filter((t) => instrumentKind(t.label) === "stock");
     const optContracts = opt.reduce((s, t) => s + Math.abs(t.qty), 0);
@@ -131,7 +172,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
       hasStock: stkShares > 0,
       hasOptions: optContracts > 0,
     };
-  }, [data, totals, monthKey]);
+  }, [data, totals, period]);
 
   return (
     <div className="flex w-full flex-col px-4 py-3 sm:px-6 lg:px-24 lg:h-[calc(100dvh-3.5rem)] lg:overflow-hidden">
@@ -178,29 +219,59 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
         </div>
       ) : (
         <>
-          <div className="flex shrink-0 items-center justify-center gap-3">
+          <div className="flex shrink-0 flex-wrap items-center justify-center gap-2">
+            <div className="flex items-center gap-0.5 rounded-lg bg-card p-0.5">
+              {(["month", "year"] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 text-xs font-medium capitalize transition-colors",
+                    view === v
+                      ? "bg-secondary text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
             <Button
               variant="secondary"
               size="icon"
               className="size-8"
-              aria-label="Previous month"
-              onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
+              aria-label={`Previous ${view}`}
+              onClick={() =>
+                setCursor(
+                  view === "month"
+                    ? new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1)
+                    : new Date(cursor.getFullYear() - 1, cursor.getMonth(), 1),
+                )
+              }
             >
               <ChevronLeft />
             </Button>
-            <h2 className="w-44 text-center text-base font-semibold">
-              {cursor.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            <h2 className="w-40 text-center text-base font-semibold">
+              {view === "month"
+                ? cursor.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+                : cursor.getFullYear()}
             </h2>
             <Button
               variant="secondary"
               size="icon"
               className="size-8"
-              aria-label="Next month"
-              onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
+              aria-label={`Next ${view}`}
+              onClick={() =>
+                setCursor(
+                  view === "month"
+                    ? new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1)
+                    : new Date(cursor.getFullYear() + 1, cursor.getMonth(), 1),
+                )
+              }
             >
               <ChevronRight />
             </Button>
-            {!isCurrentMonth && (
+            {!isCurrentPeriod && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -210,7 +281,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                   if (totals.has(today)) setSelected(today);
                 }}
               >
-                <CalendarClock /> This month
+                <CalendarClock /> This {view}
               </Button>
             )}
           </div>
@@ -224,25 +295,25 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                 label="Avg / trade"
                 value={fmtMoneyShort(summary.avgPerTrade)}
                 tone={summary.avgPerTrade}
-                hint="Month P&L ÷ closed trades"
+                hint={`${view === "month" ? "Month" : "Year"} P&L ÷ closed trades`}
               />
               <Stat
                 label="Avg / day"
                 value={fmtMoneyShort(summary.avgPerDay)}
                 tone={summary.avgPerDay}
-                hint="Month P&L ÷ trading days"
+                hint={`${view === "month" ? "Month" : "Year"} P&L ÷ trading days`}
               />
               <Stat
                 label="Avg / contract"
                 value={summary.hasOptions ? fmtMoney(summary.avgPerContract) : "—"}
                 tone={summary.hasOptions ? summary.avgPerContract : undefined}
-                hint="Gross option P&L ÷ option contracts closed this month"
+                hint={`Gross option P&L ÷ option contracts closed this ${view}`}
               />
               <Stat
                 label="Avg / share"
                 value={summary.hasStock ? fmtMoney(summary.avgPerShare) : "—"}
                 tone={summary.hasStock ? summary.avgPerShare : undefined}
-                hint="Gross stock P&L ÷ shares closed this month"
+                hint={`Gross stock P&L ÷ shares closed this ${view}`}
               />
             </div>
           )}
@@ -250,66 +321,80 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
           <div className="mt-2 grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_340px]">
             <div className="flex min-h-0 flex-col gap-3">
               <div className="flex flex-col overflow-hidden rounded-xl bg-card p-2 sm:p-3 lg:min-h-0 lg:flex-1">
-                <div className="grid shrink-0 grid-cols-5 gap-2 pb-1.5 text-center text-[11px] font-medium tracking-wider text-muted-foreground">
-                  {WEEKDAYS.map((d) => (
-                    <div key={d}>{d}</div>
-                  ))}
-                </div>
+                {view === "year" ? (
+                  <YearHeatmap
+                    cols={yearCols}
+                    totals={totals}
+                    today={today}
+                    selected={selected}
+                    onSelect={setSelected}
+                  />
+                ) : (
+                  <>
+                    <div className="grid shrink-0 grid-cols-5 gap-2 pb-1.5 text-center text-[11px] font-medium tracking-wider text-muted-foreground">
+                      {WEEKDAYS.map((d) => (
+                        <div key={d}>{d}</div>
+                      ))}
+                    </div>
 
-                <div className="flex flex-col gap-2 lg:min-h-0 lg:flex-1 lg:justify-center">
-                  {monthDays.map((week, wi) => {
-                    return (
-                      <div
-                        key={wi}
-                        className="grid grid-cols-5 gap-2 lg:min-h-0 lg:max-h-24 lg:flex-1 lg:content-stretch"
-                      >
-                        {week.map((day, di) => {
-                          if (!day) return <div key={`e${wi}-${di}`} />;
-                          const t = totals.get(day);
-                          const positive = (t?.pnl ?? 0) >= 0;
-                          return (
-                            <button
-                              key={day}
-                              onClick={() => setSelected(day)}
-                              className={cn(
-                                "flex h-16 flex-col overflow-hidden rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-all hover:border-primary/50 sm:h-20 lg:h-full",
-                                t && (positive ? "bg-profit-surface/60" : "bg-loss-surface/60"),
-                                day === today && "ring-1 ring-primary/60",
-                                selected === day &&
-                                  "z-10 scale-[1.03] shadow-xl ring-offset-2 ring-offset-card",
-                                selected === day &&
-                                  t &&
-                                  (positive
-                                    ? "bg-profit-surface ring-2 ring-profit"
-                                    : "bg-loss-surface ring-2 ring-loss"),
-                                selected === day && !t && "ring-2 ring-foreground",
-                              )}
-                            >
-                              <span className="text-[11px] font-medium leading-none text-foreground">
-                                {Number(day.slice(8))}
-                              </span>
-                              {t && (
-                                <span className="mt-auto leading-tight text-foreground">
-                                  <span className="block text-xs font-semibold tabular-nums sm:text-sm">
-                                    {fmtMoneyShort(t.pnl)}
+                    <div className="flex flex-col gap-2 lg:min-h-0 lg:flex-1 lg:justify-center">
+                      {monthDays.map((week, wi) => {
+                        return (
+                          <div
+                            key={wi}
+                            className="grid grid-cols-5 gap-2 lg:min-h-0 lg:max-h-24 lg:flex-1 lg:content-stretch"
+                          >
+                            {week.map((day, di) => {
+                              if (!day) return <div key={`e${wi}-${di}`} />;
+                              const t = totals.get(day);
+                              const positive = (t?.pnl ?? 0) >= 0;
+                              return (
+                                <button
+                                  key={day}
+                                  onClick={() => setSelected(day)}
+                                  className={cn(
+                                    "flex h-16 flex-col overflow-hidden rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-all hover:border-primary/50 sm:h-20 lg:h-full",
+                                    t && (positive ? "bg-profit-surface/60" : "bg-loss-surface/60"),
+                                    day === today && "ring-1 ring-primary/60",
+                                    selected === day &&
+                                      "z-10 scale-[1.03] shadow-xl ring-offset-2 ring-offset-card",
+                                    selected === day &&
+                                      t &&
+                                      (positive
+                                        ? "bg-profit-surface ring-2 ring-profit"
+                                        : "bg-loss-surface ring-2 ring-loss"),
+                                    selected === day && !t && "ring-2 ring-foreground",
+                                  )}
+                                >
+                                  <span className="text-[11px] font-medium leading-none text-foreground">
+                                    {Number(day.slice(8))}
                                   </span>
-                                  <span className="flex flex-wrap items-baseline gap-x-1 text-[10px] tabular-nums">
-                                    <span className="text-muted-foreground">{t.trades}T</span>
-                                    <span className="text-profit">{t.wins}W</span>
-                                    <span className="text-loss">{t.losses}L</span>
-                                    {t.breakeven > 0 && (
-                                      <span className="text-muted-foreground">{t.breakeven}BE</span>
-                                    )}
-                                  </span>
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </div>
+                                  {t && (
+                                    <span className="mt-auto leading-tight text-foreground">
+                                      <span className="block text-xs font-semibold tabular-nums sm:text-sm">
+                                        {fmtMoneyShort(t.pnl)}
+                                      </span>
+                                      <span className="flex flex-wrap items-baseline gap-x-1 text-[10px] tabular-nums">
+                                        <span className="text-muted-foreground">{t.trades}T</span>
+                                        <span className="text-profit">{t.wins}W</span>
+                                        <span className="text-loss">{t.losses}L</span>
+                                        {t.breakeven > 0 && (
+                                          <span className="text-muted-foreground">
+                                            {t.breakeven}BE
+                                          </span>
+                                        )}
+                                      </span>
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
               <InsightsPanel data={data} />
             </div>
@@ -344,6 +429,67 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
           </Drawer>
         </>
       )}
+    </div>
+  );
+}
+
+function YearHeatmap({
+  cols,
+  totals,
+  today,
+  selected,
+  onSelect,
+}: {
+  cols: { monthLabel: string | null; days: (string | null)[] }[];
+  totals: Map<string, DayTotal>;
+  today: string;
+  selected: string | null;
+  onSelect: (d: string) => void;
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col justify-center overflow-x-auto py-2">
+      <div className="flex w-max gap-[3px] pb-1 pl-6 text-[9px] text-muted-foreground">
+        {cols.map((c, i) => (
+          <div key={i} className="w-3.5 shrink-0 sm:w-4">
+            {c.monthLabel ?? ""}
+          </div>
+        ))}
+      </div>
+      <div className="flex w-max gap-[3px]">
+        <div className="flex shrink-0 flex-col justify-between pr-1 text-[9px] leading-none text-muted-foreground">
+          {["M", "T", "W", "T", "F"].map((d, i) => (
+            <span key={i} className="flex h-3.5 items-center sm:h-4">
+              {d}
+            </span>
+          ))}
+        </div>
+        {cols.map((c, ci) => (
+          <div key={ci} className="flex flex-col gap-[3px]">
+            {c.days.map((day, ri) => {
+              if (!day) return <div key={ri} className="size-3.5 sm:size-4" />;
+              const t = totals.get(day);
+              const positive = (t?.pnl ?? 0) >= 0;
+              return (
+                <button
+                  key={day}
+                  onClick={() => onSelect(day)}
+                  title={
+                    t
+                      ? `${prettyDate(day)} · ${fmtMoney(t.pnl)} · ${t.wins}W ${t.losses}L`
+                      : prettyDate(day)
+                  }
+                  className={cn(
+                    "size-3.5 rounded-[3px] bg-secondary/40 transition-colors hover:ring-1 hover:ring-primary/70 sm:size-4",
+                    t && (positive ? "bg-profit-surface/75" : "bg-loss-surface/75"),
+                    day === today && "ring-1 ring-primary/70",
+                    selected === day && "ring-2 ring-foreground",
+                  )}
+                />
+              );
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
