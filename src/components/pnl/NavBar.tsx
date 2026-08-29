@@ -19,6 +19,7 @@ import { FeeInput } from "@/components/pnl/shared";
 import {
   removeImportedFile,
   setCommissions,
+  undoRemoveFile,
   useCommissions,
   useDataset,
   useImportedFiles,
@@ -100,7 +101,16 @@ export function NavBar() {
                         <button
                           onClick={() => {
                             removeImportedFile(i);
-                            toast(`Removed ${f.name}`);
+                            toast(`Removed ${f.name}`, {
+                              duration: 12000,
+                              action: {
+                                label: "Undo",
+                                onClick: () => {
+                                  undoRemoveFile();
+                                  toast(`Restored ${f.name}`);
+                                },
+                              },
+                            });
                           }}
                           title={`Remove ${f.name}`}
                           className="shrink-0 rounded p-1 text-muted-foreground hover:bg-loss/20 hover:text-loss"

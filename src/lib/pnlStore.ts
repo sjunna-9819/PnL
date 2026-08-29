@@ -164,11 +164,27 @@ export function addImportedFiles(incoming: ImportedFile[]): Dataset | null {
   return dataset;
 }
 
+/** The most recently removed file, kept so a single deletion can be undone. */
+let lastRemoved: { file: ImportedFile; index: number } | null = null;
+
 /** Drop one imported file by its index in `useImportedFiles()`. */
 export function removeImportedFile(index: number) {
   load();
   if (index < 0 || index >= files.length) return;
+  const file = files[index]!;
+  lastRemoved = { file, index };
   files = files.filter((_, i) => i !== index);
+  commit();
+}
+
+/** Re-insert the file removed by the last `removeImportedFile` call. */
+export function undoRemoveFile() {
+  load();
+  if (!lastRemoved) return;
+  const { file, index } = lastRemoved;
+  lastRemoved = null;
+  const at = Math.min(index, files.length);
+  files = [...files.slice(0, at), file, ...files.slice(at)];
   commit();
 }
 
