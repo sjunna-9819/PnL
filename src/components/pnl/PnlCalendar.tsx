@@ -280,15 +280,15 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                                 selected === day && !t && "ring-2 ring-foreground",
                               )}
                             >
-                              <span className="text-[11px] leading-none text-muted-foreground">
+                              <span className="text-[11px] font-medium leading-none text-foreground">
                                 {Number(day.slice(8))}
                               </span>
                               {t && (
-                                <span className="mt-auto leading-tight">
+                                <span className="mt-auto leading-tight text-foreground">
                                   <span className="block text-xs font-semibold tabular-nums sm:text-sm">
                                     {fmtMoneyShort(t.pnl)}
                                   </span>
-                                  <span className="block text-[10px] opacity-70">
+                                  <span className="block text-[10px]">
                                     {t.trades} trade{t.trades === 1 ? "" : "s"}
                                   </span>
                                 </span>
