@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Link } from "@tanstack/react-router";
-import { Settings2, Trash2, Upload } from "lucide-react";
+import { Settings2, Trash2, Undo2, Upload } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -15,7 +16,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { FeeInput } from "@/components/pnl/shared";
-import { setCommissions, useCommissions, useDataset } from "@/lib/pnlStore";
+import {
+  setCommissions,
+  undoLastImport,
+  useCommissions,
+  useDataset,
+  useImportUndoLabel,
+} from "@/lib/pnlStore";
 import { clearStatements, importStatements } from "@/lib/import";
 
 const LINKS = [
@@ -29,6 +36,7 @@ const baseLink = "rounded-md px-3 py-1.5 text-sm font-medium transition-colors";
 export function NavBar() {
   const data = useDataset();
   const comm = useCommissions();
+  const undoLabel = useImportUndoLabel();
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -63,6 +71,20 @@ export function NavBar() {
           <Button size="sm" onClick={() => inputRef.current?.click()}>
             <Upload /> Import CSVs
           </Button>
+
+          {undoLabel && (
+            <Button
+              variant="secondary"
+              size="sm"
+              title={`Undo import of ${undoLabel}`}
+              onClick={() => {
+                undoLastImport();
+                toast(`Reverted ${undoLabel}`);
+              }}
+            >
+              <Undo2 /> Undo import
+            </Button>
+          )}
 
           <Popover>
             <PopoverTrigger asChild>

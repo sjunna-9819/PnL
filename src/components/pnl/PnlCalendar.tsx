@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { setDataset, useDataset } from "@/lib/pnlStore";
+import { clearImportUndo, setDataset, useDataset } from "@/lib/pnlStore";
 import { demoDataset } from "@/lib/demoData";
 import { importStatements } from "@/lib/import";
 import { analyze } from "@/lib/blog";
@@ -67,6 +67,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
   }, [newestDate, initialDay, hasInitialDay]);
 
   function loadDemo() {
+    clearImportUndo();
     setDataset(demoDataset());
     toast.success("Loaded demo data", {
       description: "A sample of stock and options trades across two months. Clear it any time.",

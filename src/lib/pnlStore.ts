@@ -81,6 +81,39 @@ export function setDataset(d: Dataset | null) {
   emit();
 }
 
+/** One level of undo, for the most recent import. */
+let importUndo: { previous: Dataset | null; label: string } | null = null;
+
+/** Call right before an import merges in new files. */
+export function snapshotBeforeImport(label: string) {
+  importUndo = { previous: dataset, label };
+  emit();
+}
+
+export function undoLastImport() {
+  if (!importUndo) return;
+  const { previous } = importUndo;
+  importUndo = null;
+  setDataset(previous);
+}
+
+export function clearImportUndo() {
+  if (!importUndo) return;
+  importUndo = null;
+  emit();
+}
+
+export function useImportUndoLabel(): string | null {
+  return useSyncExternalStore(
+    (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    () => importUndo?.label ?? null,
+    () => null,
+  );
+}
+
 export function getCommissions(): CommissionSettings {
   return loadCommissions();
 }

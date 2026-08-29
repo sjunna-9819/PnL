@@ -1,6 +1,12 @@
 import { toast } from "sonner";
 import { buildDataset, parseStatement, type Dataset, type Fill } from "@/lib/pnl";
-import { getCommissions, setDataset } from "@/lib/pnlStore";
+import {
+  clearImportUndo,
+  getCommissions,
+  setDataset,
+  snapshotBeforeImport,
+  undoLastImport,
+} from "@/lib/pnlStore";
 
 /** Parse dropped/selected broker CSVs, merge into the existing dataset, and persist. */
 export async function importStatements(fileList: FileList | null, existing: Dataset | null) {
@@ -28,13 +34,25 @@ export async function importStatements(fileList: FileList | null, existing: Data
     return;
   }
 
+  const label =
+    files.length === 1 ? (files[0]?.name ?? "the last import") : `${files.length} files`;
+  snapshotBeforeImport(label);
   setDataset(next);
-  toast.success(`Imported ${added} new fill${added === 1 ? "" : "s"}`, {
+  toast.success(`Imported ${added} new fill${added === 1 ? "" : "s"} from ${label}`, {
     description: `${next.closed.length} closed trades matched · ${next.openPositions.length} still open.`,
+    duration: 12000,
+    action: {
+      label: "Undo",
+      onClick: () => {
+        undoLastImport();
+        toast(`Reverted ${label}`);
+      },
+    },
   });
 }
 
 export function clearStatements() {
+  clearImportUndo();
   setDataset(null);
   toast("Cleared all imported data");
 }
