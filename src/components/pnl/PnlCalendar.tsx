@@ -238,9 +238,9 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
           )}
 
           <div className="mt-3 grid gap-4 lg:grid-cols-[1fr_340px]">
-            <div className="rounded-xl bg-card p-2 pb-48 sm:p-3 sm:pb-48">
-              <div className="flex gap-1.5 pb-1.5">
-                <div className="grid flex-1 grid-cols-7 gap-1.5 text-center text-[11px] font-medium tracking-wider text-muted-foreground">
+            <div className="rounded-xl bg-card p-2 pb-40 sm:p-3 sm:pb-40">
+              <div className="flex gap-2 pb-1.5">
+                <div className="grid flex-1 grid-cols-7 gap-2 text-center text-[11px] font-medium tracking-wider text-muted-foreground">
                   {WEEKDAYS.map((d) => (
                     <div key={d}>{d}</div>
                   ))}
@@ -250,14 +250,14 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {monthDays.map((week, wi) => {
                   const weekDays = week.filter((d): d is string => !!d);
                   const weekHasData = weekDays.some((d) => totals.has(d));
                   const weekPnl = weekDays.reduce((s, d) => s + (totals.get(d)?.pnl ?? 0), 0);
                   return (
-                    <div key={wi} className="flex gap-1.5">
-                      <div className="grid flex-1 grid-cols-7 gap-1.5">
+                    <div key={wi} className="flex gap-2">
+                      <div className="grid flex-1 grid-cols-7 gap-2">
                         {week.map((day, di) => {
                           if (!day) return <div key={`e${wi}-${di}`} />;
                           const t = totals.get(day);
@@ -267,7 +267,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                               key={day}
                               onClick={() => setSelected(day)}
                               className={cn(
-                                "flex h-14 flex-col rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-colors hover:border-primary/50 sm:h-[4.25rem]",
+                                "flex h-16 flex-col rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-colors hover:border-primary/50 sm:h-20",
                                 t && (positive ? "bg-profit-surface/70" : "bg-loss-surface/70"),
                                 day === today && "ring-2 ring-primary/60",
                                 selected === day && "border-foreground/70",
