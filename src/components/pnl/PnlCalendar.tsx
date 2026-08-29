@@ -32,7 +32,6 @@ import { DEMO_FILE_NAME, demoFills } from "@/lib/demoData";
 import { importStatements } from "@/lib/import";
 import { analyze } from "@/lib/blog";
 import {
-  parseBenchmarkCsv,
   removeBenchmark,
   setBenchmark,
   useBenchmarks,
@@ -612,7 +611,6 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   const [shown, setShown] = useState<string[]>([]);
   const [chart, setChart] = useState<"line" | "bars">("line");
   const [fetching, setFetching] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const inFlight = useRef(false);
 
   const series = useMemo(() => equitySeries(totals), [totals]);
@@ -767,34 +765,6 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
             {fetching === n ? "…" : `+ ${n}`}
           </button>
         ))}
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="rounded-md border border-dashed border-border px-1.5 py-0.5 text-[11px] hover:text-foreground"
-        >
-          + CSV
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".csv,text/csv"
-          className="hidden"
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            if (!file) return;
-            const pts = parseBenchmarkCsv(await file.text());
-            if (pts.length < 2) {
-              toast.error("Couldn't read that as a daily price CSV", {
-                description: "Needs a Date column and a Close (or Adj Close) column.",
-              });
-              return;
-            }
-            const name = file.name.replace(/\.csv$/i, "").toUpperCase();
-            setBenchmark(name, pts);
-            setShown((s) => (s.includes(name) ? s : [...s, name]));
-            toast.success(`Added ${name} · ${pts.length} days`);
-          }}
-        />
       </div>
 
       <div className="h-[42vh] w-full">
@@ -929,8 +899,8 @@ function InsightsPanel({ data, totals }: { data: Dataset; totals: Map<string, Da
             <EquityCurveFull totals={totals} />
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
               Your cumulative net P&amp;L (left, $) vs each index rebased to % from your first
-              trading day (right). SPY / QQQ / Nasdaq pull from Yahoo automatically when the app is
-              served by a server; otherwise use “+ CSV”.
+              trading day (right). SPY / QQQ / Nasdaq pull from Yahoo automatically (needs the app
+              served by a server — dev, <code>npm run preview</code>, or the Node server).
             </p>
           </div>
         </DrawerContent>
