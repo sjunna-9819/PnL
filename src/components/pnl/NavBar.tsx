@@ -15,15 +15,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { FeeInput } from "@/components/pnl/shared";
-import {
-  removeImportedFile,
-  setCommissions,
-  undoRemoveFile,
-  useCommissions,
-  useDataset,
-  useImportedFiles,
-} from "@/lib/pnlStore";
+import { removeImportedFile, undoRemoveFile, useDataset, useImportedFiles } from "@/lib/pnlStore";
 import { clearStatements, downloadCsv, importStatements } from "@/lib/import";
 
 const LINKS = [
@@ -38,7 +30,6 @@ const navLinkActive = "text-sm font-medium text-foreground";
 
 export function NavBar() {
   const data = useDataset();
-  const comm = useCommissions();
   const files = useImportedFiles();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -124,32 +115,6 @@ export function NavBar() {
                   </ul>
                 </div>
               )}
-
-              <div className="border-t border-border pt-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Broker commissions
-                  <span className="mt-0.5 block text-[10px] font-normal normal-case tracking-normal">
-                    Used when the statement has no commission column.
-                  </span>
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <FeeInput
-                    label="Per contract"
-                    value={comm.perContract}
-                    onChange={(v) => setCommissions({ ...comm, perContract: v })}
-                  />
-                  <FeeInput
-                    label="Per share"
-                    value={comm.perShare}
-                    onChange={(v) => setCommissions({ ...comm, perShare: v })}
-                  />
-                  <FeeInput
-                    label="Per trade"
-                    value={comm.perTrade}
-                    onChange={(v) => setCommissions({ ...comm, perTrade: v })}
-                  />
-                </div>
-              </div>
 
               {data && (
                 <AlertDialog>
