@@ -604,6 +604,133 @@ const BENCH_COLORS = [
 
 const AUTO_INDEXES = ["SPY", "QQQ", "NASDAQ", "DOW", "RUSSELL"];
 
+/** A little side-view runner. `run` = jogging stride; `party` = hands up. */
+function Runner({ phase }: { phase: "run" | "party" }) {
+  const party = phase === "party";
+  return (
+    <svg
+      viewBox="0 0 30 34"
+      width="26"
+      height="30"
+      className={cn("runner text-foreground", party && "is-party")}
+      aria-hidden
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+    >
+      <style>{`
+        .runner .p { transform-origin: 0 0; }
+        .runner:not(.is-party) .arm-a { animation: rn-sw .36s ease-in-out infinite; }
+        .runner:not(.is-party) .arm-b { animation: rn-sw .36s ease-in-out infinite reverse; }
+        .runner:not(.is-party) .leg-a { animation: rn-sw .36s ease-in-out infinite reverse; }
+        .runner:not(.is-party) .leg-b { animation: rn-sw .36s ease-in-out infinite; }
+        .runner:not(.is-party) .body { animation: rn-bob .36s ease-in-out infinite; }
+        .runner.is-party .arm-a { transform: rotate(-150deg); }
+        .runner.is-party .arm-b { transform: rotate(-124deg); }
+        .runner.is-party .leg-a { transform: rotate(-9deg); }
+        .runner.is-party .leg-b { transform: rotate(11deg); }
+        .runner.is-party .body { animation: rn-hop .5s ease-in-out infinite; }
+        @keyframes rn-sw { 0%,100%{transform:rotate(40deg)} 50%{transform:rotate(-40deg)} }
+        @keyframes rn-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-1px)} }
+        @keyframes rn-hop { 0%,100%{transform:translateY(0)} 45%{transform:translateY(-5px)} }
+      `}</style>
+      <g className="body">
+        <circle cx="16" cy="5" r="3" fill="currentColor" stroke="none" />
+        <path d="M16 8L14 20" />
+        <g transform="translate(15.5 10)">
+          <line className="p arm-a" x1="0" y1="0" x2="0" y2="8" />
+        </g>
+        <g transform="translate(15.5 10)">
+          <line className="p arm-b" x1="0" y1="0" x2="0" y2="8" />
+        </g>
+        <g transform="translate(14 20)">
+          <line className="p leg-a" x1="0" y1="0" x2="0" y2="11" />
+        </g>
+        <g transform="translate(14 20)">
+          <line className="p leg-b" x1="0" y1="0" x2="0" y2="11" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/** Runs the runner along the rendered equity path, then celebrates at the end. */
+function LineRunner() {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [phase, setPhase] = useState<"run" | "party">("run");
+
+  useEffect(() => {
+    const el = ref.current;
+    const wrap = el?.parentElement;
+    if (!el || !wrap) return;
+    setPhase("run");
+    const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+    let raf = 0;
+    let startTs = 0;
+    let done = false;
+    const DUR = 3800;
+
+    const step = (ts: number) => {
+      if (done) return;
+      const path = wrap.querySelector<SVGPathElement>(".recharts-area-curve");
+      let len = 0;
+      try {
+        len = path ? path.getTotalLength() : 0;
+      } catch {
+        len = 0;
+      }
+      if (!path || !len) {
+        raf = requestAnimationFrame(step); // chart not painted yet
+        return;
+      }
+      if (!startTs) startTs = ts;
+      const t = clamp((ts - startTs) / DUR, 0, 1);
+      const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+      const a = path.getPointAtLength(e * len);
+      const b = path.getPointAtLength(clamp(e * len + 1, 0, len));
+      const ang = clamp((Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI, -22, 22);
+      el.style.left = `${a.x}px`;
+      el.style.top = `${a.y}px`;
+      el.style.transform = `translate(-50%, -100%) rotate(${ang}deg)`;
+      if (t < 1) raf = requestAnimationFrame(step);
+      else {
+        el.style.transform = "translate(-50%, -100%)";
+        setPhase("party");
+      }
+    };
+    raf = requestAnimationFrame(step);
+    return () => {
+      done = true;
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (phase !== "party" || !el) return;
+    const jump = el.animate(
+      [
+        { transform: "translate(-50%,-100%) translateY(0)" },
+        { transform: "translate(-50%,-100%) translateY(-10px)", offset: 0.45 },
+        { transform: "translate(-50%,-100%) translateY(0)" },
+      ],
+      { duration: 640, iterations: Infinity, easing: "ease-in-out" },
+    );
+    return () => jump.cancel();
+  }, [phase]);
+
+  return (
+    <span
+      ref={ref}
+      aria-hidden
+      className="pointer-events-none absolute left-0 top-0 z-10 will-change-transform"
+    >
+      <Runner phase={phase} />
+    </span>
+  );
+}
+
 /** Full daily equity chart + index comparison, shown in the slide-up drawer. */
 function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   const benchmarks = useBenchmarks();
@@ -804,6 +931,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
         className="relative h-[42vh] w-full text-muted-foreground [&_.recharts-area-curve]:[filter:drop-shadow(0_0_5px_var(--glow))]"
         style={{ ["--glow" as string]: stroke }}
       >
+        <LineRunner key={`${firstDate}-${lastDate}`} />
         <ResponsiveContainer>
           <ComposedChart data={rows} margin={{ top: 8, right: 54, bottom: 0, left: 0 }}>
             <defs>
@@ -862,6 +990,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
               stroke={stroke}
               strokeWidth={2}
               fill="url(#equity-full-fill)"
+              isAnimationActive={false}
             />
             {principal > 0 && (
               <Line
