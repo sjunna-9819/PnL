@@ -900,9 +900,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
                 stroke={stroke}
                 strokeWidth={2}
                 fill="url(#equity-full-fill)"
-              >
-                <LabelList dataKey="cum" content={endLabel(stroke, fmtMoneyShort)} />
-              </Area>
+              />
             ) : (
               <Bar yAxisId="pnl" dataKey="day" radius={[2, 2, 0, 0]}>
                 {rows.map((r, i) => (
