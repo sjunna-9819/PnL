@@ -12,6 +12,7 @@ import { type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { NavBar } from "@/components/pnl/NavBar";
+import { useCloudSync } from "@/lib/sync";
 
 function NotFoundComponent() {
   return (
@@ -119,6 +120,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useCloudSync();
 
   return (
     <QueryClientProvider client={queryClient}>

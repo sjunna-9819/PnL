@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { loadDemoFiles, useDataset } from "@/lib/pnlStore";
+import { loadDemoFiles, setPrincipal, useDataset, usePrincipal } from "@/lib/pnlStore";
 import { DEMO_FILE_NAME, demoFills } from "@/lib/demoData";
 import { importStatements } from "@/lib/import";
 import { analyze } from "@/lib/blog";
@@ -604,8 +604,6 @@ const BENCH_COLORS = [
 
 const AUTO_INDEXES = ["SPY", "QQQ", "NASDAQ", "DOW", "RUSSELL"];
 
-const DEFAULT_PRINCIPAL = 100_000;
-
 /** A little adventurer that runs along the P&L line, then celebrates at the end. */
 function LineRunner({ series }: { series: { cum: number }[] }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -676,13 +674,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   // every default index is on by default — its line appears as soon as data lands
   const [hidden, setHidden] = useState<string[]>([]);
   const [fetching, setFetching] = useState<string | null>(null);
-  const [principal, setPrincipal] = useState<number>(() => {
-    try {
-      return Number(window.localStorage.getItem("pnl-principal")) || DEFAULT_PRINCIPAL;
-    } catch {
-      return DEFAULT_PRINCIPAL;
-    }
-  });
+  const principal = usePrincipal();
   const inFlight = useRef(false);
 
   const series = useMemo(() => equitySeries(totals), [totals]);
@@ -990,15 +982,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
             min={0}
             step={1000}
             defaultValue={principal || ""}
-            onChange={(e) => {
-              const v = Math.max(0, Number(e.target.value) || 0);
-              setPrincipal(v);
-              try {
-                window.localStorage.setItem("pnl-principal", String(v));
-              } catch {
-                /* ignore */
-              }
-            }}
+            onChange={(e) => setPrincipal(Math.max(0, Number(e.target.value) || 0))}
             className="w-24 border-b border-border bg-transparent text-center font-semibold text-foreground outline-none focus:border-foreground"
           />
         </span>{" "}

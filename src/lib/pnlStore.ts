@@ -9,6 +9,10 @@ import {
 
 const KEY = "pnl-calendar-data-v1";
 const COMM_KEY = "pnl-calendar-commissions-v1";
+const PRINCIPAL_KEY = "pnl-principal";
+
+/** Account size the equity-curve % return is measured against. */
+export const DEFAULT_PRINCIPAL = 100_000;
 
 /** One imported statement: its fills plus any broker-reported daily P/L it carried. */
 export type ImportedFile = {
@@ -37,11 +41,42 @@ function loadCommissions(): CommissionSettings {
   return commissions;
 }
 
+let principal = DEFAULT_PRINCIPAL;
+let principalLoaded = false;
+
+function loadPrincipal(): number {
+  if (principalLoaded) return principal;
+  principalLoaded = true;
+  if (typeof window === "undefined") return principal;
+  try {
+    const raw = window.localStorage.getItem(PRINCIPAL_KEY);
+    principal = raw != null && raw !== "" ? Number(raw) || 0 : DEFAULT_PRINCIPAL;
+  } catch {
+    principal = DEFAULT_PRINCIPAL;
+  }
+  return principal;
+}
+
+function persistPrincipal() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(PRINCIPAL_KEY, String(principal));
+  } catch {
+    /* ignore */
+  }
+}
+
 let files: ImportedFile[] = [];
 let dataset: Dataset | null = null;
 let summary: FileSummary[] = [];
 let loaded = false;
 const listeners = new Set<() => void>();
+
+/** Subscribe to any store change (used by the cross-device sync). */
+export function subscribeStore(cb: () => void): () => void {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
 
 function emit() {
   for (const l of listeners) l();
@@ -202,6 +237,58 @@ export function clearAllData() {
   commit();
 }
 
+/* ------------------------------------------------------------------ *
+ *  Cross-device sync: a single snapshot of everything the app stores  *
+ * ------------------------------------------------------------------ */
+
+export type StateSnapshot = {
+  files: SerFile[];
+  commissions: CommissionSettings;
+  principal: number;
+};
+
+export function snapshotState(): StateSnapshot {
+  load();
+  loadCommissions();
+  loadPrincipal();
+  return {
+    files: files.map((f) => ({
+      name: f.name,
+      fills: f.fills,
+      official: [...f.official].map(([d, m]) => [d, [...m]] as [string, [string, number][]]),
+    })),
+    commissions,
+    principal,
+  };
+}
+
+/** Replace all local state with a snapshot pulled from the server. */
+export function hydrateState(s: Partial<StateSnapshot>) {
+  files = (s.files ?? []).map((f) => ({
+    name: f.name,
+    fills: f.fills,
+    official: new Map(f.official.map(([d, rows]) => [d, new Map(rows)])),
+  }));
+  loaded = true;
+  if (s.commissions) {
+    commissions = { ...DEFAULT_COMMISSIONS, ...s.commissions };
+    commLoaded = true;
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(COMM_KEY, JSON.stringify(commissions));
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  if (typeof s.principal === "number") {
+    principal = s.principal;
+    principalLoaded = true;
+    persistPrincipal();
+  }
+  commit();
+}
+
 function hms(ts: number): string {
   const s = (((ts % 86400) + 86400) % 86400) | 0;
   const p = (n: number) => String(n).padStart(2, "0");
@@ -321,5 +408,27 @@ export function useDataset(): Dataset | null {
     },
     () => load(),
     () => null,
+  );
+}
+
+export function getPrincipal(): number {
+  return loadPrincipal();
+}
+
+export function setPrincipal(next: number) {
+  loadPrincipal();
+  principal = Math.max(0, Number(next) || 0);
+  persistPrincipal();
+  emit();
+}
+
+export function usePrincipal(): number {
+  return useSyncExternalStore(
+    (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    () => loadPrincipal(),
+    () => DEFAULT_PRINCIPAL,
   );
 }

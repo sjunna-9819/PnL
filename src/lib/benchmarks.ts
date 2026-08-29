@@ -88,6 +88,24 @@ export function removeBenchmark(name: string) {
   emit();
 }
 
+/** Subscribe to benchmark changes (used by the cross-device sync). */
+export function subscribeBenchmarks(cb: () => void): () => void {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
+
+export function snapshotBenchmarks(): Store {
+  return load();
+}
+
+/** Replace the cached index history with a snapshot pulled from the server. */
+export function hydrateBenchmarks(next: Store) {
+  load();
+  store = { ...next };
+  persist();
+  emit();
+}
+
 export function useBenchmarks(): Store {
   return useSyncExternalStore(
     (cb) => {

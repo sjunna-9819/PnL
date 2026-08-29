@@ -159,7 +159,25 @@ day total overrides the computed gross when present, and commissions are then su
   `source` field; the old `official` map is attached to the last file.
 - API: `useDataset()`, `useImportedFiles()` (→ `FileSummary[]`), `addImportedFiles()`,
   `removeImportedFile(i)`, `removeLastImportedFiles(n)`, `clearAllData()`, `loadDemoFiles()`,
-  `useCommissions()` / `getCommissions()` / `setCommissions()`.
+  `useCommissions()` / `getCommissions()` / `setCommissions()`,
+  `usePrincipal()` / `getPrincipal()` / `setPrincipal()` (account size for the equity-curve
+  % return; `localStorage["pnl-principal"]`, default `$100,000`).
+
+### 7a. Cross-device sync (`src/lib/serverState.ts` + `src/lib/sync.ts`)
+
+- The whole journal (statements + commissions + principal + cached index history) is mirrored
+  to **one JSON file on the machine that serves the app** — `$PNL_DATA_DIR/state.json`, or
+  `~/.pnl-calendar/state.json`. Any device that can reach the server (laptop, phone on the same
+  Wi-Fi) loads the same data.
+- `serverState.ts` exposes two server functions: `loadServerState()` (reads the file) and
+  `saveServerState({ data: { blob } })` (atomic write via tmp-file + rename). Needs the app
+  served by the Node server — dev, `npm run preview`, or `.output/server` — same as the Yahoo
+  fetch. No server ⇒ silently stays on `localStorage` only.
+- `sync.ts` `useCloudSync()` (mounted in `__root.tsx`): on first mount it pulls the server
+  snapshot and, if present, `hydrateState()` + `hydrateBenchmarks()` replace local state with
+  it (server wins). Then `subscribeStore` / `subscribeBenchmarks` push a debounced (900 ms)
+  snapshot back on every change. `localStorage` is still written as an offline cache.
+- Concurrent edits from two devices are **last-write-wins** — no merge.
 - **Import CSVs** (nav) opens a popover: *Import new file* + a list of previously imported
   files, each with an **✕** to drop just that file's fills. The import success toast also has a
   one-tap **Undo** (`removeLastImportedFiles`).
