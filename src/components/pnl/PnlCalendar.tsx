@@ -7,12 +7,14 @@ import {
   Maximize2,
   Sparkles,
   Upload,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Area,
-  AreaChart,
   CartesianGrid,
+  ComposedChart,
+  Line,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -27,6 +29,13 @@ import { loadDemoFiles, useDataset } from "@/lib/pnlStore";
 import { DEMO_FILE_NAME, demoFills } from "@/lib/demoData";
 import { importStatements } from "@/lib/import";
 import { analyze } from "@/lib/blog";
+import {
+  parseBenchmarkCsv,
+  removeBenchmark,
+  setBenchmark,
+  useBenchmarks,
+  type BenchmarkPoint,
+} from "@/lib/benchmarks";
 import { KindBadge, Stat, TrendArrow } from "@/components/pnl/shared";
 import {
   dailyTotals,
@@ -584,65 +593,192 @@ function EquityCurve({ totals }: { totals: Map<string, DayTotal> }) {
   );
 }
 
-/** Full daily equity chart shown in the slide-up drawer. */
+const BENCH_COLORS = [
+  "var(--color-chart-1)",
+  "var(--color-chart-2)",
+  "var(--color-chart-3)",
+  "var(--color-chart-4)",
+  "var(--color-chart-5)",
+];
+
+/** Full daily equity chart + index comparison, shown in the slide-up drawer. */
 function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
-  const rows = useMemo(
-    () =>
-      equitySeries(totals).map((p) => ({
-        label: prettyDate(p.date).replace(/,\s*\d{4}$/, ""),
-        cum: Math.round(p.cum),
-      })),
-    [totals],
-  );
+  const benchmarks = useBenchmarks();
+  const [shown, setShown] = useState<string[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const series = useMemo(() => equitySeries(totals), [totals]);
+  const firstDate = series[0]?.date ?? "";
+
+  const active = shown.filter((n) => (benchmarks[n]?.length ?? 0) > 1);
+
+  const rows = useMemo(() => {
+    const bases: Record<string, number> = {};
+    for (const n of active) {
+      const b = benchmarks[n]!;
+      bases[n] = (b.find((p) => p.date >= firstDate) ?? b[0])?.close ?? 0;
+    }
+    return series.map((s) => {
+      const row: { label: string; cum: number; [k: string]: number | string } = {
+        label: prettyDate(s.date).replace(/,\s*\d{4}$/, ""),
+        cum: Math.round(s.cum),
+      };
+      for (const n of active) {
+        const b = benchmarks[n]!;
+        let c: BenchmarkPoint | undefined;
+        for (const p of b) {
+          if (p.date <= s.date) c = p;
+          else break;
+        }
+        if (c && bases[n]) row[n] = Number((((c.close - bases[n]!) / bases[n]!) * 100).toFixed(2));
+      }
+      return row;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [series, benchmarks, shown.join(","), firstDate]);
+
   const end = rows.at(-1)?.cum ?? 0;
   const stroke = end >= 0 ? "var(--color-profit)" : "var(--color-loss)";
 
   return (
-    <div className="h-[46vh] w-full text-muted-foreground">
-      <ResponsiveContainer>
-        <AreaChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
-          <defs>
-            <linearGradient id="equity-full-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={stroke} stopOpacity={0.3} />
-              <stop offset="100%" stopColor={stroke} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid stroke="currentColor" strokeOpacity={0.1} vertical={false} />
-          <XAxis
-            dataKey="label"
-            tick={{ fontSize: 10, fill: "currentColor" }}
-            tickLine={false}
-            axisLine={false}
-            minTickGap={28}
-          />
-          <YAxis
-            width={56}
-            tick={{ fontSize: 10, fill: "currentColor" }}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(v: number) => fmtMoneyShort(v)}
-          />
-          <ReferenceLine y={0} stroke="currentColor" strokeOpacity={0.3} />
-          <Tooltip
-            cursor={{ stroke: "currentColor", strokeOpacity: 0.3 }}
-            contentStyle={{
-              background: "var(--color-card)",
-              border: "1px solid var(--color-border)",
-              borderRadius: 8,
-              fontSize: 12,
-            }}
-            labelStyle={{ color: "var(--color-muted-foreground)" }}
-            formatter={(v: number) => [fmtMoney(v), "Cumulative P&L"]}
-          />
-          <Area
-            type="monotone"
-            dataKey="cum"
-            stroke={stroke}
-            strokeWidth={2}
-            fill="url(#equity-full-fill)"
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+    <div className="text-muted-foreground">
+      <div className="mb-2 flex flex-wrap items-center gap-1.5">
+        <span className="text-[10px] uppercase tracking-wider">Compare vs</span>
+        {Object.keys(benchmarks).map((name) => {
+          const on = shown.includes(name);
+          return (
+            <span
+              key={name}
+              className={cn(
+                "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px]",
+                on ? "border-transparent bg-secondary text-foreground" : "border-border",
+              )}
+            >
+              <button
+                onClick={() =>
+                  setShown((s) => (s.includes(name) ? s.filter((x) => x !== name) : [...s, name]))
+                }
+              >
+                {name}
+              </button>
+              <button
+                onClick={() => {
+                  removeBenchmark(name);
+                  setShown((s) => s.filter((x) => x !== name));
+                }}
+                title={`Remove ${name}`}
+                className="text-muted-foreground hover:text-loss"
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          );
+        })}
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="rounded-md border border-dashed border-border px-1.5 py-0.5 text-[11px] hover:text-foreground"
+        >
+          + Add index CSV
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,text/csv"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            const pts = parseBenchmarkCsv(await file.text());
+            if (pts.length < 2) {
+              toast.error("Couldn't read that as a daily price CSV", {
+                description: "Needs a Date column and a Close (or Adj Close) column.",
+              });
+              return;
+            }
+            const name = file.name.replace(/\.csv$/i, "").toUpperCase();
+            setBenchmark(name, pts);
+            setShown((s) => (s.includes(name) ? s : [...s, name]));
+            toast.success(`Added ${name} · ${pts.length} days`);
+          }}
+        />
+      </div>
+
+      <div className="h-[42vh] w-full">
+        <ResponsiveContainer>
+          <ComposedChart
+            data={rows}
+            margin={{ top: 8, right: active.length ? 8 : 12, bottom: 0, left: 0 }}
+          >
+            <defs>
+              <linearGradient id="equity-full-fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={stroke} stopOpacity={0.3} />
+                <stop offset="100%" stopColor={stroke} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="currentColor" strokeOpacity={0.1} vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 10, fill: "currentColor" }}
+              tickLine={false}
+              axisLine={false}
+              minTickGap={28}
+            />
+            <YAxis
+              yAxisId="pnl"
+              width={56}
+              tick={{ fontSize: 10, fill: "currentColor" }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v: number) => fmtMoneyShort(v)}
+            />
+            {active.length > 0 && (
+              <YAxis
+                yAxisId="pct"
+                orientation="right"
+                width={40}
+                tick={{ fontSize: 10, fill: "currentColor" }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v}%`}
+              />
+            )}
+            <ReferenceLine yAxisId="pnl" y={0} stroke="currentColor" strokeOpacity={0.3} />
+            <Tooltip
+              cursor={{ stroke: "currentColor", strokeOpacity: 0.3 }}
+              contentStyle={{
+                background: "var(--color-card)",
+                border: "1px solid var(--color-border)",
+                borderRadius: 8,
+                fontSize: 12,
+              }}
+              labelStyle={{ color: "var(--color-muted-foreground)" }}
+              formatter={(v: number, key: string) =>
+                key === "cum" ? [fmtMoney(v), "Your P&L"] : [`${v > 0 ? "+" : ""}${v}%`, key]
+              }
+            />
+            <Area
+              yAxisId="pnl"
+              type="monotone"
+              dataKey="cum"
+              stroke={stroke}
+              strokeWidth={2}
+              fill="url(#equity-full-fill)"
+            />
+            {active.map((name, i) => (
+              <Line
+                key={name}
+                yAxisId="pct"
+                type="monotone"
+                dataKey={name}
+                stroke={BENCH_COLORS[i % BENCH_COLORS.length]}
+                strokeWidth={1.5}
+                dot={false}
+              />
+            ))}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
@@ -687,8 +823,9 @@ function InsightsPanel({ data, totals }: { data: Dataset; totals: Map<string, Da
           <div className="px-3 pb-6 pt-1 sm:px-5">
             <EquityCurveFull totals={totals} />
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              Cumulative net P&amp;L, day by day. Index comparison (SPY / QQQ / Nasdaq) needs a
-              price feed — not wired yet.
+              Your cumulative net P&amp;L (left, $) vs each index rebased to % from your first
+              trading day (right). Add one by dropping in a daily-close CSV — e.g. Yahoo Finance →
+              SPY → Historical Data → Download.
             </p>
           </div>
         </DrawerContent>
