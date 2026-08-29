@@ -17,8 +17,8 @@ export function Stat({
 }: {
   label: string;
   value: string;
-  tone?: number;
-  hint?: string;
+  tone?: number | undefined;
+  hint?: string | undefined;
 }) {
   return (
     <div className="rounded-xl bg-card px-3 py-2.5" title={hint}>

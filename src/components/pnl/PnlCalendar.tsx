@@ -105,12 +105,14 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
     const inMonth = [...totals.entries()].filter(([d]) => d.startsWith(monthKey));
     const pnl = inMonth.reduce((s, [, v]) => s + v.pnl, 0);
     const trades = inMonth.reduce((s, [, v]) => s + v.trades, 0);
-    // "per contract" = options only; stock shares are not contracts.
-    const optionTrades = data.closed.filter(
-      (t) => t.date.startsWith(monthKey) && instrumentKind(t.label) !== "stock",
-    );
-    const optionContracts = optionTrades.reduce((s, t) => s + Math.abs(t.qty), 0);
-    const optionPnl = optionTrades.reduce((s, t) => s + t.pnl, 0);
+    // Options and stock kept separate: contracts vs shares.
+    const monthClosed = data.closed.filter((t) => t.date.startsWith(monthKey));
+    const opt = monthClosed.filter((t) => instrumentKind(t.label) !== "stock");
+    const stk = monthClosed.filter((t) => instrumentKind(t.label) === "stock");
+    const optContracts = opt.reduce((s, t) => s + Math.abs(t.qty), 0);
+    const optPnl = opt.reduce((s, t) => s + t.pnl, 0);
+    const stkShares = stk.reduce((s, t) => s + Math.abs(t.qty), 0);
+    const stkPnl = stk.reduce((s, t) => s + t.pnl, 0);
     const best = inMonth.reduce<[string, DayTotal] | null>(
       (b, x) => (x[1].pnl > (b?.[1].pnl ?? -Infinity) ? x : b),
       null,
@@ -125,7 +127,10 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
       worst: worst?.[1].pnl ?? 0,
       avgPerTrade: trades ? pnl / trades : 0,
       avgPerDay: inMonth.length ? pnl / inMonth.length : 0,
-      avgPerContract: optionContracts ? optionPnl / optionContracts : 0,
+      avgPerContract: optContracts ? optPnl / optContracts : 0,
+      avgPerShare: stkShares ? stkPnl / stkShares : 0,
+      hasStock: stkShares > 0,
+      hasOptions: optContracts > 0,
     };
   }, [data, totals, monthKey]);
 
@@ -212,7 +217,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
           </div>
 
           {summary && (
-            <div className="mt-2 grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+            <div className="mt-2 grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
               <Stat label="Total P&L" value={fmtMoneyShort(summary.pnl)} tone={summary.pnl} />
               <Stat label="Best day" value={fmtMoneyShort(summary.best)} tone={summary.best} />
               <Stat label="Worst day" value={fmtMoneyShort(summary.worst)} tone={summary.worst} />
@@ -230,9 +235,15 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
               />
               <Stat
                 label="Avg / contract"
-                value={fmtMoney(summary.avgPerContract)}
-                tone={summary.avgPerContract}
-                hint="Gross option P&L ÷ option contracts closed this month (stock excluded)"
+                value={summary.hasOptions ? fmtMoney(summary.avgPerContract) : "—"}
+                tone={summary.hasOptions ? summary.avgPerContract : undefined}
+                hint="Gross option P&L ÷ option contracts closed this month"
+              />
+              <Stat
+                label="Avg / share"
+                value={summary.hasStock ? fmtMoney(summary.avgPerShare) : "—"}
+                tone={summary.hasStock ? summary.avgPerShare : undefined}
+                hint="Gross stock P&L ÷ shares closed this month"
               />
             </div>
           )}
