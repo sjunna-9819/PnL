@@ -268,10 +268,16 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                               onClick={() => setSelected(day)}
                               className={cn(
                                 "flex h-16 flex-col overflow-hidden rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-all hover:border-primary/50 sm:h-20 lg:h-full",
-                                t && (positive ? "bg-profit-surface/70" : "bg-loss-surface/70"),
+                                t && (positive ? "bg-profit-surface/60" : "bg-loss-surface/60"),
                                 day === today && "ring-1 ring-primary/60",
                                 selected === day &&
-                                  "z-10 scale-[1.03] bg-background text-foreground shadow-xl ring-2 ring-foreground ring-offset-2 ring-offset-card",
+                                  "z-10 scale-[1.03] shadow-xl ring-offset-2 ring-offset-card",
+                                selected === day &&
+                                  t &&
+                                  (positive
+                                    ? "bg-profit-surface ring-2 ring-profit"
+                                    : "bg-loss-surface ring-2 ring-loss"),
+                                selected === day && !t && "ring-2 ring-foreground",
                               )}
                             >
                               <span className="text-[11px] leading-none text-muted-foreground">
@@ -279,13 +285,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                               </span>
                               {t && (
                                 <span className="mt-auto leading-tight">
-                                  <span
-                                    className={cn(
-                                      "block text-xs font-semibold tabular-nums sm:text-sm",
-                                      selected === day &&
-                                        (t.pnl >= 0 ? "text-profit" : "text-loss"),
-                                    )}
-                                  >
+                                  <span className="block text-xs font-semibold tabular-nums sm:text-sm">
                                     {fmtMoneyShort(t.pnl)}
                                   </span>
                                   <span className="block text-[10px] opacity-70">
