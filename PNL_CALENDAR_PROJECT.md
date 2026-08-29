@@ -193,8 +193,7 @@ a ▲/▼ glyph so gain/loss is not colour-only). Import feedback and clear/demo
 `sonner` toasts (`<Toaster/>` mounted in `__root.tsx`).
 
 **Navigation** — a sticky `NavBar` (mounted in `__root.tsx`, so it's on every route). Left:
-tabs **Home** (`/`, the calendar), **Ticker P/L** (`/tickers`), **ER** (`/er`, earnings
-calendar), **Blog** (`/blog`). Right:
+tabs **Home** (`/`, the calendar), **Ticker P/L** (`/tickers`), **Blog** (`/blog`). Right:
 **Import CSVs**, the commission-settings gear, and **Clear** (with a confirm dialog, shown
 only when data is loaded). The import/clear logic lives in `src/lib/import.ts`
 (`importStatements`, `clearStatements`) so the nav and the empty-state drop zone share it.
@@ -234,22 +233,6 @@ The calendar page itself has no header — it opens straight on the drop zone or
   days traded, W/L, carried-in, remaining open size) and a "View on calendar →" link that
   jumps to `/?day=<first trading day>` (index route `validateSearch`).
 - **Symbol filter** + sort toggle (P&L / Name; click again to reverse direction) above the list.
-
-**`/er` — Earnings calendar (whole market)**
-- A **month grid** (Mon–Fri, same builder as Home) of *every* US company reporting that day —
-  not just tickers you trade. Each cell shows the count + the three biggest names; tickers you
-  hold are tinted and pinned at the bottom of the cell. `‹ ›` steps months, **Today** returns.
-- Click a day → a list below the grid, grouped **Before open / After close / Time TBD**, each
-  row = symbol, company, consensus EPS, market cap (sorted by market cap).
-- Data: `fetchEarningsDay(date)` server fn in `src/lib/marketData.ts` → Nasdaq's public
-  `api.nasdaq.com/api/calendar/earnings?date=` (free, no key, no crumb — just a UA header).
-  Yahoo's own market-wide earnings endpoint is crumb-gated and currently returns nothing, so
-  Nasdaq is the source here.
-- `src/lib/earnings.ts` — `useSyncExternalStore` cache keyed by **date**, `localStorage`
-  `pnl-earnings-cal-v1`. Past days are cached forever; today/future days have a 12 h TTL. The
-  page fetches the visible month's uncached weekdays one at a time (serialised via a ref lock
-  so switching months fast doesn't hammer Nasdaq). **Not** in the cross-device sync — it's
-  public data, cheap to refetch.
 
 **`/blog` — Trading journal (the "agent")**
 - `src/lib/blog.ts` is a **pure heuristics engine**, no network / no model. `analyze(data)`

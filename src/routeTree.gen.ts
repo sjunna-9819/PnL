@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogRouteImport } from './routes/blog'
-import { Route as ErRouteImport } from './routes/er'
 import { Route as TickersRouteImport } from './routes/tickers'
 
 const IndexRoute = IndexRouteImport.update({
@@ -24,11 +23,6 @@ const BlogRoute = BlogRouteImport.update({
   path: '/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ErRoute = ErRouteImport.update({
-  id: '/er',
-  path: '/er',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TickersRoute = TickersRouteImport.update({
   id: '/tickers',
   path: '/tickers',
@@ -38,34 +32,30 @@ const TickersRoute = TickersRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/blog': typeof BlogRoute
-  '/er': typeof ErRoute
   '/tickers': typeof TickersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/blog': typeof BlogRoute
-  '/er': typeof ErRoute
   '/tickers': typeof TickersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/blog': typeof BlogRoute
-  '/er': typeof ErRoute
   '/tickers': typeof TickersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/blog' | '/er' | '/tickers'
+  fullPaths: '/' | '/blog' | '/tickers'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/blog' | '/er' | '/tickers'
-  id: '__root__' | '/' | '/blog' | '/er' | '/tickers'
+  to: '/' | '/blog' | '/tickers'
+  id: '__root__' | '/' | '/blog' | '/tickers'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BlogRoute: typeof BlogRoute
-  ErRoute: typeof ErRoute
   TickersRoute: typeof TickersRoute
 }
 
@@ -85,13 +75,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/er': {
-      id: '/er'
-      path: '/er'
-      fullPath: '/er'
-      preLoaderRoute: typeof ErRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/tickers': {
       id: '/tickers'
       path: '/tickers'
@@ -105,7 +88,6 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BlogRoute: BlogRoute,
-  ErRoute: ErRoute,
   TickersRoute: TickersRoute,
 }
 export const routeTree = rootRouteImport
