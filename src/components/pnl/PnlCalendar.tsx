@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { clearImportUndo, setDataset, useDataset } from "@/lib/pnlStore";
-import { demoDataset } from "@/lib/demoData";
+import { loadDemoFiles, useDataset } from "@/lib/pnlStore";
+import { DEMO_FILE_NAME, demoFills } from "@/lib/demoData";
 import { importStatements } from "@/lib/import";
 import { analyze } from "@/lib/blog";
 import { KindBadge, Stat, TrendArrow } from "@/components/pnl/shared";
@@ -67,8 +67,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
   }, [newestDate, initialDay, hasInitialDay]);
 
   function loadDemo() {
-    clearImportUndo();
-    setDataset(demoDataset());
+    loadDemoFiles({ name: DEMO_FILE_NAME, fills: demoFills(), official: new Map() });
     toast.success("Loaded demo data", {
       description: "A sample of stock and options trades across two months. Clear it any time.",
     });
@@ -136,7 +135,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
         multiple
         className="hidden"
         onChange={(e) => {
-          void importStatements(e.target.files, data);
+          void importStatements(e.target.files);
           e.target.value = "";
         }}
       />
@@ -146,7 +145,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
-            void importStatements(e.dataTransfer.files, data);
+            void importStatements(e.dataTransfer.files);
           }}
           onClick={() => inputRef.current?.click()}
           className="mt-4 cursor-pointer rounded-2xl border border-dashed border-border p-16 text-center transition-colors hover:border-primary/60 sm:p-20"

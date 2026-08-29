@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Link } from "@tanstack/react-router";
-import { Settings2, Trash2, Undo2, Upload } from "lucide-react";
+import { Settings2, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,11 +17,11 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { FeeInput } from "@/components/pnl/shared";
 import {
+  removeImportedFile,
   setCommissions,
-  undoLastImport,
   useCommissions,
   useDataset,
-  useImportUndoLabel,
+  useImportedFiles,
 } from "@/lib/pnlStore";
 import { clearStatements, importStatements } from "@/lib/import";
 
@@ -36,7 +36,7 @@ const baseLink = "rounded-md px-3 py-1.5 text-sm font-medium transition-colors";
 export function NavBar() {
   const data = useDataset();
   const comm = useCommissions();
-  const undoLabel = useImportUndoLabel();
+  const files = useImportedFiles();
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -64,27 +64,56 @@ export function NavBar() {
             multiple
             className="hidden"
             onChange={(e) => {
-              void importStatements(e.target.files, data);
+              void importStatements(e.target.files);
               e.target.value = "";
             }}
           />
-          <Button size="sm" onClick={() => inputRef.current?.click()}>
-            <Upload /> Import CSVs
-          </Button>
 
-          {undoLabel && (
-            <Button
-              variant="secondary"
-              size="sm"
-              title={`Undo import of ${undoLabel}`}
-              onClick={() => {
-                undoLastImport();
-                toast(`Reverted ${undoLabel}`);
-              }}
-            >
-              <Undo2 /> Undo import
-            </Button>
-          )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="sm">
+                <Upload /> Import CSVs
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-72">
+              <Button size="sm" className="w-full" onClick={() => inputRef.current?.click()}>
+                <Upload /> Import new file
+              </Button>
+
+              {files.length > 0 && (
+                <div className="mt-3">
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Undo previous files
+                  </p>
+                  <ul className="space-y-1">
+                    {files.map((f, i) => (
+                      <li
+                        key={`${f.name}-${i}`}
+                        className="flex items-center gap-2 rounded-md bg-secondary/50 py-1 pl-2 pr-1 text-xs"
+                      >
+                        <span className="min-w-0 flex-1 truncate" title={f.name}>
+                          {f.name}
+                        </span>
+                        <span className="shrink-0 text-[10px] text-muted-foreground">
+                          {f.fills} fills
+                        </span>
+                        <button
+                          onClick={() => {
+                            removeImportedFile(i);
+                            toast(`Removed ${f.name}`);
+                          }}
+                          title={`Remove ${f.name}`}
+                          className="shrink-0 rounded p-1 text-muted-foreground hover:bg-loss/20 hover:text-loss"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
 
           <Popover>
             <PopoverTrigger asChild>

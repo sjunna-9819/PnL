@@ -1,4 +1,4 @@
-import { buildDataset, DEFAULT_COMMISSIONS, type Dataset, type Fill } from "@/lib/pnl";
+import { type Fill } from "@/lib/pnl";
 
 /**
  * A deterministic, self-contained sample dataset so a first-time visitor can
@@ -226,9 +226,11 @@ function monthOffsets(): { a: string; b: string } {
   return { a: fmt(a), b: fmt(b) };
 }
 
-export function demoDataset(): Dataset {
+export const DEMO_FILE_NAME = "Demo data.csv";
+
+export function demoFills(): Fill[] {
   const { a, b } = monthOffsets();
-  const fills: Fill[] = LEGS.map((leg, i) => {
+  return LEGS.map((leg, i) => {
     const date = (leg.day.startsWith("-1") ? a : b) + leg.day.slice(2);
     const [y, mo, d] = date.split("-").map(Number);
     return {
@@ -244,10 +246,7 @@ export function demoDataset(): Dataset {
       hasPnlColumn: false,
       csvFee: leg.fee ?? (leg.option ? Math.abs(leg.qty) * 0.65 : 0),
       posEffect: leg.effect ?? "",
-      source: "demo-data",
+      source: DEMO_FILE_NAME,
     };
   });
-  return buildDataset(fills, ["Demo data.csv"], new Map(), DEFAULT_COMMISSIONS);
 }
-
-export const DEMO_FILE_NAME = "Demo data.csv";

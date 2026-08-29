@@ -1,50 +1,41 @@
 import { toast } from "sonner";
-import { buildDataset, parseStatement, type Dataset, type Fill } from "@/lib/pnl";
+import { parseStatement } from "@/lib/pnl";
 import {
-  clearImportUndo,
-  getCommissions,
-  setDataset,
-  snapshotBeforeImport,
-  undoLastImport,
+  addImportedFiles,
+  clearAllData,
+  removeLastImportedFiles,
+  type ImportedFile,
 } from "@/lib/pnlStore";
 
-/** Parse dropped/selected broker CSVs, merge into the existing dataset, and persist. */
-export async function importStatements(fileList: FileList | null, existing: Dataset | null) {
+/** Parse dropped/selected broker CSVs and append them as imported files. */
+export async function importStatements(fileList: FileList | null) {
   if (!fileList?.length) return;
-  const files = Array.from(fileList);
-  const all: Fill[] = existing ? [...existing.fills] : [];
-  const names = existing ? [...existing.files] : [];
-  const official = new Map(existing ? existing.officialDayPnl : []);
+  const incoming: ImportedFile[] = [];
 
-  for (const file of files) {
-    const text = await file.text();
-    const parsed = parseStatement(text, file.name);
-    all.push(...parsed.fills);
-    for (const [date, bySymbol] of parsed.officialDayPnl) official.set(date, bySymbol);
-    names.push(file.name);
+  for (const file of Array.from(fileList)) {
+    const parsed = parseStatement(await file.text(), file.name);
+    incoming.push({ name: file.name, fills: parsed.fills, official: parsed.officialDayPnl });
   }
 
-  const next = buildDataset(all, names, official, getCommissions());
-  const added = next.fills.length - (existing?.fills.length ?? 0);
-
-  if (added <= 0) {
+  const added = incoming.reduce((s, f) => s + f.fills.length, 0);
+  if (added === 0) {
     toast.error("No trades found in that file", {
       description: "Expecting a broker Account Statement export (Thinkorswim / Schwab).",
     });
     return;
   }
 
-  const label =
-    files.length === 1 ? (files[0]?.name ?? "the last import") : `${files.length} files`;
-  snapshotBeforeImport(label);
-  setDataset(next);
-  toast.success(`Imported ${added} new fill${added === 1 ? "" : "s"} from ${label}`, {
-    description: `${next.closed.length} closed trades matched · ${next.openPositions.length} still open.`,
+  const next = addImportedFiles(incoming);
+  const label = incoming.length === 1 ? incoming[0]!.name : `${incoming.length} files`;
+  toast.success(`Imported ${added} fill${added === 1 ? "" : "s"} from ${label}`, {
+    description: `${next?.closed.length ?? 0} closed trades matched · ${
+      next?.openPositions.length ?? 0
+    } still open.`,
     duration: 12000,
     action: {
       label: "Undo",
       onClick: () => {
-        undoLastImport();
+        removeLastImportedFiles(incoming.length);
         toast(`Reverted ${label}`);
       },
     },
@@ -52,7 +43,6 @@ export async function importStatements(fileList: FileList | null, existing: Data
 }
 
 export function clearStatements() {
-  clearImportUndo();
-  setDataset(null);
+  clearAllData();
   toast("Cleared all imported data");
 }
