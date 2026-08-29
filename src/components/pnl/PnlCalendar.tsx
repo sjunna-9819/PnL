@@ -608,6 +608,70 @@ const AUTO_INDEXES = ["SPY", "QQQ", "NASDAQ", "DOW", "RUSSELL"];
 
 const DEFAULT_PRINCIPAL = 100_000;
 
+/** A little adventurer that runs along the P&L line, then celebrates at the end. */
+function LineRunner({ series }: { series: { cum: number }[] }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [phase, setPhase] = useState<"run" | "party">("run");
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || series.length < 2) return;
+    setPhase("run");
+    const vals = series.map((p) => p.cum);
+    const min = Math.min(0, ...vals);
+    const range = Math.max(0, ...vals) - min || 1;
+    const n = series.length - 1;
+    const frames: Keyframe[] = series.map((p, i) => {
+      const prev = series[Math.max(0, i - 1)]!;
+      const slope = Math.atan2((p.cum - prev.cum) / range, 6 / n) * (180 / Math.PI);
+      const deg = Math.max(-32, Math.min(32, slope));
+      return {
+        offset: i / n,
+        left: `${(i / n) * 100}%`,
+        bottom: `${((p.cum - min) / range) * 100}%`,
+        transform: `translate(-50%, 50%) rotate(${-deg}deg) scaleX(-1)`,
+      };
+    });
+    const run = el.animate(frames, { duration: 2600, easing: "ease-in-out", fill: "forwards" });
+    run.onfinish = () => {
+      const last = frames.at(-1)!;
+      el.style.left = String(last["left"]);
+      el.style.bottom = String(last["bottom"]);
+      run.cancel();
+      setPhase("party");
+    };
+    return () => {
+      run.cancel();
+      el.style.left = "";
+      el.style.bottom = "";
+    };
+  }, [series]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (phase !== "party" || !el) return;
+    const jump = el.animate(
+      [
+        { transform: "translate(-50%,50%) translateY(0) scale(1)" },
+        { transform: "translate(-50%,50%) translateY(-16px) scale(1.15)", offset: 0.5 },
+        { transform: "translate(-50%,50%) translateY(0) scale(1)" },
+      ],
+      { duration: 620, iterations: Infinity, easing: "cubic-bezier(.3,-0.2,.5,1.4)" },
+    );
+    return () => jump.cancel();
+  }, [phase]);
+
+  return (
+    <span
+      ref={ref}
+      aria-hidden
+      className="pointer-events-none absolute bottom-0 left-0 text-lg will-change-transform"
+    >
+      {phase === "party" ? "🙌" : "🏃"}
+    </span>
+  );
+}
+
 /** Full daily equity chart + index comparison, shown in the slide-up drawer. */
 function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   const benchmarks = useBenchmarks();
@@ -664,20 +728,11 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
     if (!firstDate) return;
     let cancelled = false;
     (async () => {
-      let ok = 0;
-      let attempted = 0;
       for (const name of AUTO_INDEXES) {
         if (cancelled) return;
         const cached = benchmarks[name];
-        if (cached && cached.length > 1 && (cached.at(-1)?.date ?? "") >= lastDate) {
-          ok++;
-          continue;
-        }
-        attempted++;
-        if (await pull(name, true)) ok++;
-      }
-      if (!cancelled && attempted > 0 && ok === 0) {
-        toast("Couldn't reach Yahoo — add an index with “+ CSV” instead");
+        if (cached && cached.length > 1 && (cached.at(-1)?.date ?? "") >= lastDate) continue;
+        await pull(name, true);
       }
     })();
     return () => {
@@ -837,9 +892,18 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
       </div>
 
       <div
-        className="h-[42vh] w-full text-muted-foreground [&_.recharts-area-curve]:[filter:drop-shadow(0_0_5px_var(--glow))]"
+        className="relative h-[42vh] w-full text-muted-foreground [&_.recharts-area-curve]:[filter:drop-shadow(0_0_5px_var(--glow))]"
         style={{ ["--glow" as string]: stroke }}
       >
+        {chart === "line" && (
+          <div
+            key={firstDate + lastDate}
+            className="pointer-events-none absolute z-10"
+            style={{ left: 56, right: 54, top: 8, bottom: 18 }}
+          >
+            <LineRunner series={rows} />
+          </div>
+        )}
         <ResponsiveContainer>
           <ComposedChart data={rows} margin={{ top: 8, right: 54, bottom: 0, left: 0 }}>
             <defs>
