@@ -611,7 +611,8 @@ const DEFAULT_PRINCIPAL = 100_000;
 /** Full daily equity chart + index comparison, shown in the slide-up drawer. */
 function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   const benchmarks = useBenchmarks();
-  const [shown, setShown] = useState<string[]>([]);
+  // every default index is on by default — its line appears as soon as data lands
+  const [hidden, setHidden] = useState<string[]>([]);
   const [chart, setChart] = useState<"line" | "bars">("line");
   const [fetching, setFetching] = useState<string | null>(null);
   const [principal, setPrincipal] = useState<number>(() => {
@@ -627,7 +628,8 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   const firstDate = series[0]?.date ?? "";
   const lastDate = series.at(-1)?.date ?? firstDate;
 
-  const active = shown.filter((n) => (benchmarks[n]?.length ?? 0) > 1);
+  const allNames = [...new Set([...AUTO_INDEXES, ...Object.keys(benchmarks)])];
+  const active = allNames.filter((n) => (benchmarks[n]?.length ?? 0) > 1 && !hidden.includes(n));
 
   async function pull(name: string, silent = false) {
     if (inFlight.current) return false;
@@ -639,7 +641,6 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
       });
       if (pts.length < 2) throw new Error("no data returned");
       setBenchmark(name, pts);
-      setShown((s) => (s.includes(name) ? s : [...s, name]));
       if (!silent) toast.success(`${name} · ${pts.length} days from Yahoo`);
       return true;
     } catch (err) {
@@ -658,7 +659,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
     }
   }
 
-  // On open, pull the default indexes from Yahoo (uses the cache when fresh).
+  // On open, pull every default index from Yahoo (skips ones already cached fresh).
   useEffect(() => {
     if (!firstDate) return;
     let cancelled = false;
@@ -669,7 +670,6 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
         if (cancelled) return;
         const cached = benchmarks[name];
         if (cached && cached.length > 1 && (cached.at(-1)?.date ?? "") >= lastDate) {
-          setShown((s) => (s.includes(name) ? s : [...s, name]));
           ok++;
           continue;
         }
@@ -711,7 +711,7 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
       return row;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [series, benchmarks, shown.join(","), firstDate, principal]);
+  }, [series, benchmarks, hidden.join(","), firstDate, principal]);
 
   const end = rows.at(-1)?.cum ?? 0;
   const stroke = end >= 0 ? "var(--color-profit)" : "var(--color-loss)";
@@ -781,8 +781,9 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
           </span>
         )}
         <span className="text-[10px] uppercase tracking-wider">vs</span>
-        {Object.keys(benchmarks).map((name) => {
-          const on = shown.includes(name);
+        {allNames.map((name) => {
+          const has = (benchmarks[name]?.length ?? 0) > 1;
+          const on = has && !hidden.includes(name);
           const finalPct = on ? (rows.at(-1)?.[name] as number | undefined) : undefined;
           const color = BENCH_COLORS[active.indexOf(name) % BENCH_COLORS.length] ?? undefined;
           return (
@@ -794,13 +795,21 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
               )}
             >
               <button
-                onClick={() =>
-                  setShown((s) => (s.includes(name) ? s.filter((x) => x !== name) : [...s, name]))
-                }
+                onClick={() => {
+                  if (!has) void pull(name);
+                  else
+                    setHidden((h) =>
+                      h.includes(name) ? h.filter((x) => x !== name) : [...h, name],
+                    );
+                }}
                 className="flex items-center gap-1"
               >
-                {on && color && (
+                {on && color ? (
                   <span className="size-1.5 rounded-full" style={{ background: color }} />
+                ) : (
+                  <span className="text-muted-foreground">
+                    {fetching === name ? "…" : has ? "" : "+"}
+                  </span>
                 )}
                 {name}
                 {typeof finalPct === "number" && (
@@ -810,29 +819,21 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
                   </span>
                 )}
               </button>
-              <button
-                onClick={() => {
-                  removeBenchmark(name);
-                  setShown((s) => s.filter((x) => x !== name));
-                }}
-                title={`Remove ${name}`}
-                className="text-muted-foreground hover:text-loss"
-              >
-                <X className="size-3" />
-              </button>
+              {has && (
+                <button
+                  onClick={() => {
+                    removeBenchmark(name);
+                    setHidden((h) => h.filter((x) => x !== name));
+                  }}
+                  title={`Remove ${name}`}
+                  className="text-muted-foreground hover:text-loss"
+                >
+                  <X className="size-3" />
+                </button>
+              )}
             </span>
           );
         })}
-        {AUTO_INDEXES.filter((n) => !benchmarks[n]).map((n) => (
-          <button
-            key={n}
-            onClick={() => void pull(n)}
-            disabled={!!fetching}
-            className="rounded-md border border-border px-1.5 py-0.5 text-[11px] hover:text-foreground disabled:opacity-50"
-          >
-            {fetching === n ? "…" : `+ ${n}`}
-          </button>
-        ))}
       </div>
 
       <div
