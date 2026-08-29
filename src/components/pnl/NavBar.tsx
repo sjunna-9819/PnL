@@ -35,7 +35,7 @@ export function NavBar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
-      <div className="flex h-14 w-full items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="flex h-14 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-24">
         <nav className="flex items-center gap-4">
           {LINKS.map((l) => (
             <Link
