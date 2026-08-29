@@ -257,12 +257,12 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                   ))}
                 </div>
 
-                <div className="flex flex-col gap-2 lg:min-h-0 lg:flex-1">
+                <div className="flex flex-col gap-2 lg:min-h-0 lg:flex-1 lg:justify-center">
                   {monthDays.map((week, wi) => {
                     return (
                       <div
                         key={wi}
-                        className="grid grid-cols-5 gap-2 lg:min-h-0 lg:flex-1 lg:content-stretch"
+                        className="grid grid-cols-5 gap-2 lg:min-h-0 lg:max-h-24 lg:flex-1 lg:content-stretch"
                       >
                         {week.map((day, di) => {
                           if (!day) return <div key={`e${wi}-${di}`} />;
