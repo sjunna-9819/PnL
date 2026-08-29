@@ -396,7 +396,7 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
                   </>
                 )}
               </div>
-              <InsightsPanel data={data} />
+              <InsightsPanel data={data} totals={totals} />
             </div>
 
             {/* relative + absolute inner: the panel matches the calendar's height
@@ -501,7 +501,71 @@ function gradeChip(grade: string) {
   return "bg-loss/20 text-loss";
 }
 
-function InsightsPanel({ data }: { data: Dataset }) {
+/** Inline-SVG cumulative net-P&L curve (equity curve). */
+function EquityCurve({ totals }: { totals: Map<string, DayTotal> }) {
+  const pts = useMemo(() => {
+    const daily = [...totals.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    let cum = 0;
+    return daily.map(([date, v]) => {
+      cum += v.pnl;
+      return { date, cum };
+    });
+  }, [totals]);
+
+  if (pts.length < 2) return null;
+
+  const W = 300;
+  const H = 44;
+  const vals = pts.map((p) => p.cum);
+  const min = Math.min(0, ...vals);
+  const max = Math.max(0, ...vals);
+  const range = max - min || 1;
+  const x = (i: number) => (i / (pts.length - 1)) * W;
+  const y = (v: number) => H - ((v - min) / range) * H;
+  const line = vals
+    .map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`)
+    .join(" ");
+  const area = `${line} L${W},${H} L0,${H} Z`;
+  const end = vals[vals.length - 1]!;
+  const stroke = end >= 0 ? "var(--color-profit)" : "var(--color-loss)";
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+      className="h-11 w-full"
+      role="img"
+      aria-label={`Cumulative net P&L, ending ${fmtMoney(end)}`}
+    >
+      <defs>
+        <linearGradient id="equity-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={stroke} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={stroke} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <line
+        x1="0"
+        y1={y(0)}
+        x2={W}
+        y2={y(0)}
+        stroke="currentColor"
+        strokeOpacity="0.25"
+        strokeWidth="0.5"
+        className="text-muted-foreground"
+      />
+      <path d={area} fill="url(#equity-fill)" />
+      <path
+        d={line}
+        fill="none"
+        stroke={stroke}
+        strokeWidth="1.25"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+function InsightsPanel({ data, totals }: { data: Dataset; totals: Map<string, DayTotal> }) {
   const a = useMemo(() => analyze(data), [data]);
   const m = a.m;
   const pf = m.profitFactor === Infinity ? "∞" : m.profitFactor.toFixed(2);
@@ -519,6 +583,12 @@ function InsightsPanel({ data }: { data: Dataset }) {
           <span className={cn("rounded px-1 py-0.5 font-bold", gradeChip(a.grade))}>{a.grade}</span>
           Full review →
         </Link>
+      </div>
+      <div className="mt-1.5 flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Equity curve</p>
+          <EquityCurve totals={totals} />
+        </div>
       </div>
       <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-9">
         <Stat label="Net P&L" value={fmtMoneyShort(m.net)} tone={m.net} />
