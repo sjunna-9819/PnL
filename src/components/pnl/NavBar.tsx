@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Link } from "@tanstack/react-router";
-import { Download, Settings2, Trash2, Upload, X } from "lucide-react";
+import { Download, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,17 +74,17 @@ export function NavBar() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" title="Import statements">
+              <Button variant="ghost" size="icon" title="Import / manage data">
                 <Upload />
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-72">
+            <PopoverContent align="end" className="w-80 space-y-3">
               <Button size="sm" className="w-full" onClick={() => inputRef.current?.click()}>
                 <Upload /> Import new file
               </Button>
 
               {files.length > 0 && (
-                <div className="mt-3">
+                <div>
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Undo previous files
                   </p>
@@ -124,6 +124,57 @@ export function NavBar() {
                   </ul>
                 </div>
               )}
+
+              <div className="border-t border-border pt-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Broker commissions
+                  <span className="mt-0.5 block text-[10px] font-normal normal-case tracking-normal">
+                    Used when the statement has no commission column.
+                  </span>
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <FeeInput
+                    label="Per contract"
+                    value={comm.perContract}
+                    onChange={(v) => setCommissions({ ...comm, perContract: v })}
+                  />
+                  <FeeInput
+                    label="Per share"
+                    value={comm.perShare}
+                    onChange={(v) => setCommissions({ ...comm, perShare: v })}
+                  />
+                  <FeeInput
+                    label="Per trade"
+                    value={comm.perTrade}
+                    onChange={(v) => setCommissions({ ...comm, perTrade: v })}
+                  />
+                </div>
+              </div>
+
+              {data && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="w-full border-t border-border pt-3 text-left text-xs text-muted-foreground hover:text-loss">
+                      Clear all imported data
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear all imported data?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Every fill is removed from this browser. Your CSV files are untouched, but
+                        you&apos;ll need to re-import them.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Keep it</AlertDialogCancel>
+                      <AlertDialogAction onClick={clearStatements}>
+                        Clear everything
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </PopoverContent>
           </Popover>
 
@@ -136,62 +187,6 @@ export function NavBar() {
             >
               <Download />
             </Button>
-          )}
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="secondary" size="icon" title="Commission settings">
-                <Settings2 />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-auto max-w-[90vw]">
-              <p className="text-xs font-medium tracking-wider text-muted-foreground">
-                BROKER COMMISSIONS
-                <span className="mt-1 block max-w-xs text-[11px] font-normal normal-case tracking-normal">
-                  Used when the statement has no commission column.
-                </span>
-              </p>
-              <div className="mt-3 flex flex-wrap gap-3">
-                <FeeInput
-                  label="Per contract"
-                  value={comm.perContract}
-                  onChange={(v) => setCommissions({ ...comm, perContract: v })}
-                />
-                <FeeInput
-                  label="Per share"
-                  value={comm.perShare}
-                  onChange={(v) => setCommissions({ ...comm, perShare: v })}
-                />
-                <FeeInput
-                  label="Per trade"
-                  value={comm.perTrade}
-                  onChange={(v) => setCommissions({ ...comm, perTrade: v })}
-                />
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {data && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="secondary" size="icon" title="Clear all imported data">
-                  <Trash2 />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Clear all imported data?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Every fill is removed from this browser. Your CSV files are untouched, but
-                    you&apos;ll need to re-import them.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Keep it</AlertDialogCancel>
-                  <AlertDialogAction onClick={clearStatements}>Clear everything</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           )}
         </div>
       </div>
