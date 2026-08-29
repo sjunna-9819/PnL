@@ -311,8 +311,10 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
               </div>
             </div>
 
-            <aside className="hidden lg:block">
-              <div className="sticky top-[4.5rem] max-h-[calc(100dvh-6rem)] overflow-y-auto overscroll-contain rounded-xl bg-card p-4">
+            {/* relative + absolute inner: the panel matches the calendar's height
+                exactly and scrolls internally instead of stretching the row. */}
+            <aside className="relative hidden lg:block">
+              <div className="absolute inset-0 overflow-y-auto overscroll-contain rounded-xl bg-card p-4">
                 {selected ? (
                   <DayDetail data={data} selected={selected} totals={totals} />
                 ) : (
