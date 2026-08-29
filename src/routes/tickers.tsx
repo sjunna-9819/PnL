@@ -1,8 +1,11 @@
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useDataset } from "@/lib/pnlStore";
-import { fmtMoney, fmtMoneyShort, symbolGroups, type InstrumentKind } from "@/lib/pnl";
+import { KindBadge, Stat, TrendArrow } from "@/components/pnl/shared";
+import { fmtMoney, fmtMoneyShort, symbolGroups, type SymbolGroup } from "@/lib/pnl";
 
 const title = "Ticker P&L — Profit and Loss by Symbol and Contract";
 const description =
@@ -22,35 +25,44 @@ export const Route = createFileRoute("/tickers")({
   component: TickersPage,
 });
 
-function KindBadge({ kind }: { kind: InstrumentKind }) {
-  const map = {
-    call: { text: "C", cls: "bg-profit/20 text-profit", title: "Call option" },
-    put: { text: "P", cls: "bg-loss/20 text-loss", title: "Put option" },
-    stock: { text: "Stock", cls: "bg-secondary text-foreground", title: "Stock" },
-  } as const;
-  const m = map[kind];
-  return (
-    <span
-      title={m.title}
-      className={cn(
-        "inline-flex min-w-6 items-center justify-center rounded-md px-1.5 py-0.5 text-[11px] font-bold",
-        m.cls,
-      )}
-    >
-      {m.text}
-    </span>
-  );
+type SortKey = "pnl" | "name" | "volume";
+
+const SORTS: { key: SortKey; label: string }[] = [
+  { key: "pnl", label: "P&L" },
+  { key: "name", label: "Name" },
+  { key: "volume", label: "Volume" },
+];
+
+function groupVolume(g: SymbolGroup) {
+  return g.rows.reduce((s, r) => s + r.qty, 0);
+}
+
+function groupFirstDay(g: SymbolGroup): string | undefined {
+  return [...new Set(g.rows.flatMap((r) => r.days))].sort()[0];
 }
 
 function TickersPage() {
   const data = useDataset();
-  const groups = data ? symbolGroups(data) : [];
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<SortKey>("pnl");
+
+  const groups = useMemo(() => (data ? symbolGroups(data) : []), [data]);
   const total = groups.reduce((s, g) => s + g.pnl, 0);
   const winners = groups.filter((g) => g.pnl > 0).length;
 
+  const visible = useMemo(() => {
+    const q = query.trim().toUpperCase();
+    const filtered = q ? groups.filter((g) => g.symbol.includes(q)) : groups;
+    const sorted = [...filtered];
+    if (sort === "name") sorted.sort((a, b) => a.symbol.localeCompare(b.symbol));
+    else if (sort === "volume") sorted.sort((a, b) => groupVolume(b) - groupVolume(a));
+    else sorted.sort((a, b) => b.pnl - a.pnl);
+    return sorted;
+  }, [groups, query, sort]);
+
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-5xl px-6 py-10">
+      <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
         <Link
           to="/"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
@@ -70,107 +82,135 @@ function TickersPage() {
           <>
             <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
               <Stat label="Total P&L" value={fmtMoneyShort(total)} tone={total} />
-              <Stat
-                label="Commissions"
-                value={`-$${(data?.totalFees ?? 0).toFixed(2)}`}
-              />
+              <Stat label="Commissions" value={`-$${(data.totalFees ?? 0).toFixed(2)}`} />
               <Stat label="Green symbols" value={`${winners}/${groups.length}`} />
               <Stat
                 label="Best symbol"
-                value={groups[0] ? `${groups[0].symbol} ${fmtMoneyShort(groups[0].pnl)}` : "—"}
-                tone={groups[0]?.pnl ?? 0}
+                value={visible[0] ? `${visible[0].symbol} ${fmtMoneyShort(visible[0].pnl)}` : "—"}
+                tone={visible[0]?.pnl ?? 0}
               />
             </div>
 
-            <div className="mt-6 space-y-4">
-              {groups.map((g) => (
-                <section key={g.symbol} className="rounded-2xl bg-card p-5">
-                  <header className="flex items-baseline justify-between gap-4">
-                    <h2 className="text-lg font-semibold">{g.symbol}</h2>
-                    <span
-                      className={cn(
-                        "text-lg font-bold",
-                        g.pnl > 0 && "text-profit",
-                        g.pnl < 0 && "text-loss",
-                        g.pnl === 0 && "text-muted-foreground",
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 rounded-lg bg-card px-3 py-2">
+                <Search className="size-4 text-muted-foreground" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Filter symbols…"
+                  className="w-40 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                />
+              </div>
+              <div className="flex items-center gap-1 rounded-lg bg-card p-1">
+                {SORTS.map((s) => (
+                  <button
+                    key={s.key}
+                    onClick={() => setSort(s.key)}
+                    className={cn(
+                      "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                      sort === s.key
+                        ? "bg-secondary text-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {visible.length} of {groups.length} symbols
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              {visible.map((g) => {
+                const firstDay = groupFirstDay(g);
+                return (
+                  <section key={g.symbol} className="rounded-2xl bg-card p-5">
+                    <header className="flex items-baseline justify-between gap-4">
+                      {firstDay ? (
+                        <Link
+                          to="/"
+                          search={{ day: firstDay }}
+                          className="text-lg font-semibold hover:underline"
+                          title={`Show ${g.symbol} on the calendar`}
+                        >
+                          {g.symbol}
+                        </Link>
+                      ) : (
+                        <h2 className="text-lg font-semibold">{g.symbol}</h2>
                       )}
-                    >
-                      {fmtMoney(g.pnl)}
-                    </span>
-                  </header>
-                  {g.fees > 0 && (
+                      <span
+                        className={cn(
+                          "flex items-center gap-1 text-lg font-bold",
+                          g.pnl > 0 && "text-profit",
+                          g.pnl < 0 && "text-loss",
+                          g.pnl === 0 && "text-muted-foreground",
+                        )}
+                      >
+                        <TrendArrow tone={g.pnl} />
+                        {fmtMoney(g.pnl)}
+                      </span>
+                    </header>
                     <p className="text-xs text-muted-foreground">
-                      net of ${g.fees.toFixed(2)} commissions
+                      {groupVolume(g).toLocaleString()} contracts/shares closed
+                      {g.fees > 0 ? ` · net of $${g.fees.toFixed(2)} commissions` : ""}
                     </p>
-                  )}
-                  <ul className="mt-3 space-y-2">
-                    {g.rows.map((r) => {
-                      const unit = r.kind === "stock" ? "shares" : "contracts";
-                      return (
-                        <li key={r.key} className="rounded-xl bg-secondary/60 p-3">
-                          <div className="flex items-baseline justify-between gap-3">
-                            <span className="flex items-center gap-2 font-medium">
-                              <KindBadge kind={r.kind} />
-                              {r.label}
-                            </span>
-                            <span
-                              className={cn(
-                                "font-semibold",
-                                r.pnl > 0 && "text-profit",
-                                r.pnl < 0 && "text-loss",
-                                r.pnl === 0 && "text-muted-foreground",
-                              )}
-                            >
-                              {r.pnl === 0 ? "—" : fmtMoney(r.pnl)}
-                            </span>
-                          </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                            <span>
-                              {r.qty} {unit} closed
-                            </span>
-                            <span>
-                              {r.wins}W / {r.losses}L
-                            </span>
-                            <span>
-                              {r.days.length} day{r.days.length === 1 ? "" : "s"}
-                            </span>
-                            {r.carriedQty > 0 && <span>{r.carriedQty} carried in</span>}
-                            {r.openQty !== 0 && (
-                              <span className="rounded-full bg-primary/20 px-2 py-0.5 text-primary-foreground">
-                                Still holding {Math.abs(r.openQty)} {unit} @ $
-                                {r.avgOpenPrice.toFixed(2)}
+                    <ul className="mt-3 space-y-2">
+                      {g.rows.map((r) => {
+                        const unit = r.kind === "stock" ? "shares" : "contracts";
+                        return (
+                          <li key={r.key} className="rounded-xl bg-secondary/60 p-3">
+                            <div className="flex items-baseline justify-between gap-3">
+                              <span className="flex items-center gap-2 font-medium">
+                                <KindBadge kind={r.kind} />
+                                {r.label}
                               </span>
-                            )}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              ))}
+                              <span
+                                className={cn(
+                                  "font-semibold",
+                                  r.pnl > 0 && "text-profit",
+                                  r.pnl < 0 && "text-loss",
+                                  r.pnl === 0 && "text-muted-foreground",
+                                )}
+                              >
+                                {r.pnl === 0 ? "—" : fmtMoney(r.pnl)}
+                              </span>
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                              <span>
+                                {r.qty} {unit} closed
+                              </span>
+                              <span>
+                                {r.wins}W / {r.losses}L
+                              </span>
+                              <span>
+                                {r.days.length} day{r.days.length === 1 ? "" : "s"}
+                              </span>
+                              {r.carriedQty > 0 && <span>{r.carriedQty} carried in</span>}
+                              {r.openQty !== 0 && (
+                                <span className="rounded-full bg-primary/20 px-2 py-0.5 text-primary-foreground">
+                                  Still holding {Math.abs(r.openQty)} {unit} @ $
+                                  {r.avgOpenPrice.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                );
+              })}
+              {visible.length === 0 && (
+                <p className="rounded-2xl bg-card p-8 text-center text-sm text-muted-foreground">
+                  No symbols match &ldquo;{query}&rdquo;.
+                </p>
+              )}
             </div>
           </>
         )}
       </div>
     </main>
-  );
-}
-
-function Stat({ label, value, tone }: { label: string; value: string; tone?: number }) {
-  return (
-    <div className="rounded-2xl bg-card p-5">
-      <p
-        className={cn(
-          "text-xl font-bold",
-          tone !== undefined && tone > 0 && "text-profit",
-          tone !== undefined && tone < 0 && "text-loss",
-        )}
-      >
-        {value}
-      </p>
-      <p className="mt-1 text-xs font-medium tracking-wider text-muted-foreground">
-        {label.toUpperCase()}
-      </p>
-    </div>
   );
 }

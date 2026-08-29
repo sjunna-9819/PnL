@@ -150,28 +150,40 @@ day total overrides the computed gross when present, and commissions are then su
   **rebuilt** from raw fills on load, so any engine improvement applies to already-imported data.
 - API: `useDataset()`, `setDataset()`, `useCommissions()`, `getCommissions()`, `setCommissions()`.
 - Importing multiple CSVs merges: fills append, official P&L maps merge by date.
+- `src/lib/demoData.ts` — `demoDataset()` builds a deterministic sample (two months of
+  stock + options trades, 2 left open) straight through `buildDataset`; wired to the
+  empty-state "Load demo data" button.
 
 ---
 
 ## 8. UI
 
+Shared bits live in `src/components/pnl/shared.tsx` (`Stat`, `KindBadge`, `TrendArrow` —
+a ▲/▼ glyph so gain/loss is not colour-only). Import feedback and clear/demo actions use
+`sonner` toasts (`<Toaster/>` mounted in `__root.tsx`).
+
 **`/` — PnlCalendar**
-- Import button + full-page drag-and-drop, multi-file.
-- Month navigation; each day cell tinted `profit-surface` / `loss-surface`, showing net P&L
-  and trade count.
-- Month stats: Total P&L, Commissions, Win rate, Best day, Worst day, Avg P&L / trade
-  (month P&L ÷ closed trades), Avg P&L / day (month P&L ÷ trading days), Avg P&L / contract
-  (month P&L ÷ contracts+shares closed that month).
-- Day sidebar: date, day net P&L (plus "net of $X commissions (gross …)"), per-instrument
-  rows with badge (**C** green / **P** red / **Stock**), P&L, quantities closed/opened,
-  avg entry/exit, fill count, carried-in, fees, and a status chip; plus a **STILL OPEN**
-  section with side, size, average price and open date.
-- "Clear" wipes the dataset.
+- Import button + full-page drag-and-drop, multi-file. Empty state names the supported
+  brokers and offers **Load demo data**.
+- All-time strip under the title: net P&L, trade count, trading days, first date.
+- Month navigation with a **This month** shortcut (shown when off the current month); the
+  current date gets a ring; each day cell tinted `profit-surface` / `loss-surface`, showing
+  net P&L and trade count.
+- Weekly P&L total in a right-hand column of the grid (hidden below `md`).
+- Month stats: Total P&L, Commissions, **Green days** (% of trading days that closed
+  positive), Best day, Worst day, Avg P&L / trade (month P&L ÷ closed trades), Avg P&L / day
+  (month P&L ÷ trading days), Avg P&L / contract (month P&L ÷ contracts+shares closed).
+- Commission inputs live in a gear **popover** in the header.
+- Day detail (date, net P&L with gross/fee line, per-instrument rows, **STILL OPEN**
+  section) renders in the right sidebar on `lg+` and as a bottom **drawer** on mobile.
+- "Clear" prompts an **alert dialog** before wiping the dataset.
 
 **`/tickers` — Ticker P&L**
 - Stats: Total P&L, Commissions, Green symbols, Best symbol.
-- Symbols sorted by P&L; each expands into its individual contracts with badge, net P&L,
-  quantity, days traded, W/L, carried-in and remaining open size.
+- **Symbol filter** + sort toggle (P&L / Name / Volume). Each symbol heading links to `/`
+  with `?day=<first trading day>` so the calendar jumps there (index route
+  `validateSearch`). Groups expand into individual contracts with badge, net P&L, quantity,
+  days traded, W/L, carried-in and remaining open size.
 
 **Theme (`src/styles.css`)** — dark base with semantic tokens: `--profit`, `--loss`,
 `--profit-surface`, `--loss-surface`. Never hardcode colors in components; use
