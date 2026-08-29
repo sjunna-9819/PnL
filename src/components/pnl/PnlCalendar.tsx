@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { CalendarClock, ChevronLeft, ChevronRight, Sparkles, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { setDataset, useDataset } from "@/lib/pnlStore";
 import { demoDataset } from "@/lib/demoData";
 import { importStatements } from "@/lib/import";
+import { analyze } from "@/lib/blog";
 import { KindBadge, Stat, TrendArrow } from "@/components/pnl/shared";
 import {
   dailyTotals,
@@ -244,62 +246,65 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
           )}
 
           <div className="mt-2 grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_340px]">
-            <div className="flex flex-col overflow-hidden rounded-xl bg-card p-2 sm:p-3">
-              <div className="grid shrink-0 grid-cols-5 gap-2 pb-1.5 text-center text-[11px] font-medium tracking-wider text-muted-foreground">
-                {WEEKDAYS.map((d) => (
-                  <div key={d}>{d}</div>
-                ))}
-              </div>
+            <div className="flex min-h-0 flex-col gap-3">
+              <div className="flex flex-col overflow-hidden rounded-xl bg-card p-2 sm:p-3 lg:min-h-0 lg:flex-1">
+                <div className="grid shrink-0 grid-cols-5 gap-2 pb-1.5 text-center text-[11px] font-medium tracking-wider text-muted-foreground">
+                  {WEEKDAYS.map((d) => (
+                    <div key={d}>{d}</div>
+                  ))}
+                </div>
 
-              <div className="flex flex-col gap-2 lg:min-h-0 lg:flex-1">
-                {monthDays.map((week, wi) => {
-                  return (
-                    <div
-                      key={wi}
-                      className="grid grid-cols-5 gap-2 lg:min-h-0 lg:flex-1 lg:content-stretch"
-                    >
-                      {week.map((day, di) => {
-                        if (!day) return <div key={`e${wi}-${di}`} />;
-                        const t = totals.get(day);
-                        const positive = (t?.pnl ?? 0) >= 0;
-                        return (
-                          <button
-                            key={day}
-                            onClick={() => setSelected(day)}
-                            className={cn(
-                              "flex h-16 flex-col overflow-hidden rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-all hover:border-primary/50 sm:h-20 lg:h-full",
-                              t && (positive ? "bg-profit-surface/60" : "bg-loss-surface/60"),
-                              day === today && "ring-1 ring-primary/60",
-                              selected === day &&
-                                "z-10 scale-[1.03] shadow-xl ring-offset-2 ring-offset-card",
-                              selected === day &&
-                                t &&
-                                (positive
-                                  ? "bg-profit-surface ring-2 ring-profit"
-                                  : "bg-loss-surface ring-2 ring-loss"),
-                              selected === day && !t && "ring-2 ring-foreground",
-                            )}
-                          >
-                            <span className="text-[11px] font-medium leading-none text-foreground">
-                              {Number(day.slice(8))}
-                            </span>
-                            {t && (
-                              <span className="mt-auto leading-tight text-foreground">
-                                <span className="block text-xs font-semibold tabular-nums sm:text-sm">
-                                  {fmtMoneyShort(t.pnl)}
-                                </span>
-                                <span className="block text-[10px]">
-                                  {t.trades} trade{t.trades === 1 ? "" : "s"}
-                                </span>
+                <div className="flex flex-col gap-2 lg:min-h-0 lg:flex-1">
+                  {monthDays.map((week, wi) => {
+                    return (
+                      <div
+                        key={wi}
+                        className="grid grid-cols-5 gap-2 lg:min-h-0 lg:flex-1 lg:content-stretch"
+                      >
+                        {week.map((day, di) => {
+                          if (!day) return <div key={`e${wi}-${di}`} />;
+                          const t = totals.get(day);
+                          const positive = (t?.pnl ?? 0) >= 0;
+                          return (
+                            <button
+                              key={day}
+                              onClick={() => setSelected(day)}
+                              className={cn(
+                                "flex h-16 flex-col overflow-hidden rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-all hover:border-primary/50 sm:h-20 lg:h-full",
+                                t && (positive ? "bg-profit-surface/60" : "bg-loss-surface/60"),
+                                day === today && "ring-1 ring-primary/60",
+                                selected === day &&
+                                  "z-10 scale-[1.03] shadow-xl ring-offset-2 ring-offset-card",
+                                selected === day &&
+                                  t &&
+                                  (positive
+                                    ? "bg-profit-surface ring-2 ring-profit"
+                                    : "bg-loss-surface ring-2 ring-loss"),
+                                selected === day && !t && "ring-2 ring-foreground",
+                              )}
+                            >
+                              <span className="text-[11px] font-medium leading-none text-foreground">
+                                {Number(day.slice(8))}
                               </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
+                              {t && (
+                                <span className="mt-auto leading-tight text-foreground">
+                                  <span className="block text-xs font-semibold tabular-nums sm:text-sm">
+                                    {fmtMoneyShort(t.pnl)}
+                                  </span>
+                                  <span className="block text-[10px]">
+                                    {t.trades} trade{t.trades === 1 ? "" : "s"}
+                                  </span>
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+              <InsightsPanel data={data} />
             </div>
 
             {/* relative + absolute inner: the panel matches the calendar's height
@@ -332,6 +337,45 @@ export function PnlCalendar({ initialDay }: { initialDay?: string | undefined })
           </Drawer>
         </>
       )}
+    </div>
+  );
+}
+
+function gradeChip(grade: string) {
+  const l = grade[0];
+  if (l === "A" || l === "B") return "bg-profit/20 text-profit";
+  if (l === "C") return "bg-secondary text-foreground";
+  return "bg-loss/20 text-loss";
+}
+
+function InsightsPanel({ data }: { data: Dataset }) {
+  const a = useMemo(() => analyze(data), [data]);
+  const m = a.m;
+  const pf = m.profitFactor === Infinity ? "∞" : m.profitFactor.toFixed(2);
+  const po = m.payoff === Infinity ? "∞" : m.payoff.toFixed(2);
+  return (
+    <div className="shrink-0 rounded-xl bg-card p-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Insights · all-time
+        </h3>
+        <Link
+          to="/blog"
+          className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+        >
+          <span className={cn("rounded px-1 py-0.5 font-bold", gradeChip(a.grade))}>{a.grade}</span>
+          Full review →
+        </Link>
+      </div>
+      <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-7">
+        <Stat label="Net P&L" value={fmtMoneyShort(m.net)} tone={m.net} />
+        <Stat label="Trades" value={String(m.tradeCount)} />
+        <Stat label="Win rate" value={`${Math.round(m.winRate * 100)}%`} />
+        <Stat label="Payoff" value={`${po}×`} tone={m.payoff >= 1 ? 1 : -1} />
+        <Stat label="Profit factor" value={pf} tone={m.profitFactor >= 1 ? 1 : -1} />
+        <Stat label="Expectancy" value={fmtMoneyShort(m.expectancy)} tone={m.expectancy} />
+        <Stat label="Max drawdown" value={fmtMoneyShort(-m.maxDrawdown)} tone={-1} />
+      </div>
     </div>
   );
 }
