@@ -697,10 +697,16 @@ function equitySeries(totals: Map<string, DayTotal>) {
 
 function EquityCurveMini({ totals }: { totals: Map<string, DayTotal> }) {
   const pts = useMemo(() => equitySeries(totals), [totals]);
-  if (pts.length < 2) return null;
+  if (pts.length < 2) {
+    return (
+      <p className="flex h-full items-center text-[11px] text-muted-foreground">
+        Two or more trading days needed to draw the curve.
+      </p>
+    );
+  }
 
   const W = 300;
-  const H = 44;
+  const H = 100;
   const vals = pts.map((p) => p.cum);
   const min = Math.min(0, ...vals);
   const max = Math.max(0, ...vals);
@@ -718,7 +724,7 @@ function EquityCurveMini({ totals }: { totals: Map<string, DayTotal> }) {
     <svg
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
-      className="h-16 w-full"
+      className="h-full min-h-16 w-full"
       role="img"
       aria-label={`Cumulative net P&L, ending ${fmtMoney(end)}`}
     >
@@ -1122,15 +1128,17 @@ function EquityPane() {
     <div className="flex h-full flex-col">
       <button
         onClick={() => setOpen(true)}
-        className="block w-full rounded-md text-left transition-colors hover:bg-secondary/30"
         title="Open the full daily equity curve"
+        className="flex min-h-0 flex-1 flex-col rounded-md text-left transition-colors hover:bg-secondary/30"
       >
-        <p className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-muted-foreground">
+        <p className="flex shrink-0 items-center gap-1 text-[9px] uppercase tracking-wider text-muted-foreground">
           Equity curve <Maximize2 className="size-2.5" />
         </p>
-        <EquityCurveMini totals={totals} />
+        <div className="min-h-0 flex-1">
+          <EquityCurveMini totals={totals} />
+        </div>
       </button>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className="mt-1 shrink-0 text-xs text-muted-foreground">
         Net{" "}
         <span className={cn("font-semibold", net >= 0 ? "text-profit" : "text-loss")}>
           {fmtMoney(net)}
