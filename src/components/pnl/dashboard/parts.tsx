@@ -1083,9 +1083,9 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   );
 }
 
-/** One widget, two views: the equity curve or the per-ticker P&L breakdown. */
+/** One widget, three views: the equity curve, per-ticker P&L, or allocation. */
 export function MarketWidget() {
-  const [tab, setTab] = useState<"equity" | "tickers">("equity");
+  const [tab, setTab] = useState<"equity" | "tickers" | "allocation">("equity");
 
   return (
     <div className="flex h-full flex-col">
@@ -1094,6 +1094,7 @@ export function MarketWidget() {
           [
             ["equity", "Equity curve"],
             ["tickers", "Ticker P&L"],
+            ["allocation", "Allocation"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -1111,7 +1112,115 @@ export function MarketWidget() {
         ))}
       </div>
       <div className="min-h-0 flex-1">
-        {tab === "equity" ? <EquityPane /> : <TickerBreakdown />}
+        {tab === "equity" ? (
+          <EquityPane />
+        ) : tab === "tickers" ? (
+          <TickerBreakdown />
+        ) : (
+          <AllocationView />
+        )}
+      </div>
+    </div>
+  );
+}
+
+const ALLOC_COLORS = {
+  cash: "var(--color-chart-3)",
+  stock: "var(--color-chart-1)",
+  options: "var(--color-chart-2)",
+} as const;
+
+/** Donut: how the account is split between cash, stock positions and options. */
+function AllocationView() {
+  const { data, totals } = useDash();
+  const principal = usePrincipal();
+
+  const alloc = useMemo(() => {
+    const net = [...totals.values()].reduce((s, v) => s + v.pnl, 0);
+    const account = principal + net;
+    let stock = 0;
+    let options = 0;
+    for (const p of data?.openPositions ?? []) {
+      const notional =
+        Math.abs(p.qty) * p.avgPrice * (instrumentKind(p.label) === "stock" ? 1 : 100);
+      if (instrumentKind(p.label) === "stock") stock += notional;
+      else options += notional;
+    }
+    const cash = Math.max(0, account - stock - options);
+    return { account, cash, stock, options };
+  }, [data, totals, principal]);
+
+  if (!data) return <NeedsData>Import a statement to see how the account is allocated.</NeedsData>;
+
+  const slices = [
+    { key: "cash", label: "Cash", value: alloc.cash, color: ALLOC_COLORS.cash },
+    { key: "stock", label: "Shares", value: alloc.stock, color: ALLOC_COLORS.stock },
+    { key: "options", label: "Options", value: alloc.options, color: ALLOC_COLORS.options },
+  ].filter((s) => s.value > 0);
+  const total = slices.reduce((s, x) => s + x.value, 0) || 1;
+
+  const R = 42;
+  const CIRC = 2 * Math.PI * R;
+  let offset = 0;
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <svg viewBox="0 0 120 120" className="h-full max-h-48 w-auto -rotate-90">
+          <circle
+            cx="60"
+            cy="60"
+            r={R}
+            fill="none"
+            stroke="var(--color-secondary)"
+            strokeWidth="14"
+          />
+          {slices.map((s) => {
+            const frac = s.value / total;
+            const dash = frac * CIRC;
+            const el = (
+              <circle
+                key={s.key}
+                cx="60"
+                cy="60"
+                r={R}
+                fill="none"
+                stroke={s.color}
+                strokeWidth="14"
+                strokeDasharray={`${dash} ${CIRC - dash}`}
+                strokeDashoffset={-offset}
+              />
+            );
+            offset += dash;
+            return el;
+          })}
+        </svg>
+      </div>
+
+      <ul className="mt-2 shrink-0 space-y-1">
+        {slices.map((s) => (
+          <li key={s.key} className="flex items-center gap-2 text-xs">
+            <span className="size-2 shrink-0 rounded-[3px]" style={{ background: s.color }} />
+            <span className="flex-1 text-muted-foreground">{s.label}</span>
+            <span className="tabular-nums text-foreground">
+              ${Math.round(s.value).toLocaleString("en-US")}
+            </span>
+            <span className="w-9 text-right tabular-nums text-muted-foreground">
+              {Math.round((s.value / total) * 100)}%
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-2 shrink-0 border-t border-border pt-2 text-center">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Account</p>
+        <p className="text-lg font-bold tabular-nums">
+          $
+          {alloc.account.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </p>
       </div>
     </div>
   );
