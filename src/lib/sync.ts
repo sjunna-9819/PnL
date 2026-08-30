@@ -28,6 +28,10 @@ function currentBlob(): string {
   });
 }
 
+function isEmptyState(): boolean {
+  return snapshotState().files.length === 0 && Object.keys(snapshotBenchmarks()).length === 0;
+}
+
 function scheduleSave() {
   if (!ready) return;
   if (timer) clearTimeout(timer);
@@ -75,7 +79,11 @@ export function useCloudSync() {
       if (!alive) return;
       unsubs.push(subscribeStore(scheduleSave));
       unsubs.push(subscribeBenchmarks(scheduleSave));
-      scheduleSave(); // push local data up on a fresh server file
+      // Push local data up on a fresh server file — but never push an empty
+      // client on load. That just means "nothing imported yet", and pushing it
+      // would wipe another device's journal. A deliberate Clear still pushes,
+      // via the subscription above.
+      if (!isEmptyState()) scheduleSave();
     })();
 
     return () => {

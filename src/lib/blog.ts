@@ -1,4 +1,5 @@
 import { dailyTotals, fmtMoney, instrumentKind, tickerRows, type Dataset } from "@/lib/pnl";
+import { dailyDigest } from "@/lib/digest";
 
 /**
  * The "journal agent" — a deterministic analysis engine that reads the imported
@@ -498,7 +499,41 @@ export function journal(data: Dataset): Post[] {
     review.sections.push({ heading: "Do this next", tone: "neutral", items: a.advice });
   posts.push(review);
 
-  const daily = [...dailyTotals(data).entries()];
+  const totalsMap = dailyTotals(data);
+
+  // The journey — every trading session as its own dated entry, newest first,
+  // each one the daily-digest agent's read of that day.
+  const JOURNEY_LIMIT = 30;
+  const sessions = [...totalsMap.entries()]
+    .filter(([, v]) => v.trades > 0)
+    .sort(([x], [y]) => y.localeCompare(x));
+  for (const [d] of sessions.slice(0, JOURNEY_LIMIT)) {
+    const dg = dailyDigest(data, d, totalsMap);
+    posts.push({
+      id: `day-${d}`,
+      date: d,
+      title: new Date(`${d}T00:00`).toLocaleDateString("en-US", { weekday: "long" }),
+      summary: dg.headline,
+      sections: [
+        {
+          heading: "Journal",
+          tone: dg.mood === "green" ? "good" : dg.mood === "red" ? "bad" : "neutral",
+          items: dg.lines.map((l) => l.text),
+        },
+      ],
+    });
+  }
+  if (sessions.length > JOURNEY_LIMIT) {
+    posts.push({
+      id: "journey-more",
+      date: sessions[JOURNEY_LIMIT]?.[0] ?? lastDate,
+      title: "Earlier sessions",
+      summary: `${sessions.length - JOURNEY_LIMIT} more trading days before this. Open any of them from the calendar for its digest.`,
+      sections: [],
+    });
+  }
+
+  const daily = [...totalsMap.entries()];
   const months = [...new Set(daily.map(([d]) => d.slice(0, 7)))].sort().reverse();
   for (const mk of months) {
     const rows = daily.filter(([d]) => d.startsWith(mk));
