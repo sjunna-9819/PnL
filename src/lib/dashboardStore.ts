@@ -6,7 +6,8 @@ import type { Rect, WidgetId } from "@/components/pnl/dashboard/types";
  * widgets are currently hidden. Rects are kept even for hidden widgets so
  * toggling one back on restores it where it was.
  */
-const KEY = "pnl-dashboard-v1";
+// v2: day detail became a click-to-open popup instead of a grid widget.
+const KEY = "pnl-dashboard-v2";
 
 export type DashState = {
   rects: Partial<Record<WidgetId, Rect>>;

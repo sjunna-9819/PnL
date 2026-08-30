@@ -27,6 +27,8 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { loadDemoFiles, setPrincipal, usePrincipal } from "@/lib/pnlStore";
 import { DEMO_FILE_NAME, demoFills } from "@/lib/demoData";
@@ -249,7 +251,7 @@ export function SummaryStats() {
  * ------------------------------------------------------------------ */
 
 export function CalendarView() {
-  const { data, totals, cursor, view, today, selected, setSelected } = useDash();
+  const { data, totals, cursor, view, today, selected, openDetail } = useDash();
 
   const monthDays = useMemo(() => {
     const y = cursor.getFullYear();
@@ -302,7 +304,7 @@ export function CalendarView() {
         totals={totals}
         today={today}
         selected={selected}
-        onSelect={setSelected}
+        onSelect={openDetail}
       />
     );
   }
@@ -324,7 +326,7 @@ export function CalendarView() {
               return (
                 <button
                   key={day}
-                  onClick={() => setSelected(day)}
+                  onClick={() => openDetail(day)}
                   className={cn(
                     "flex min-h-16 flex-col overflow-hidden rounded-lg border border-transparent bg-secondary/60 p-1.5 text-left transition-all hover:border-primary/50",
                     t && (positive ? "bg-profit-surface/60" : "bg-loss-surface/60"),
@@ -432,27 +434,46 @@ function YearHeatmap({
  *  Day detail                                                         *
  * ------------------------------------------------------------------ */
 
-export function DayDetailView() {
-  const { data, selected } = useDash();
+/** The day-detail popup: a centered dialog on desktop, a bottom sheet on mobile. */
+export function DayDetailDialog() {
+  const { detailDay, closeDetail } = useDash();
+  const isMobile = useIsMobile();
+  const open = detailDay !== null;
 
-  if (!data) return <NeedsData>Import a statement, then pick a day.</NeedsData>;
-  if (!selected)
-    return <NeedsData>Select a day on the calendar to see the tickers you played.</NeedsData>;
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={(o) => !o && closeDetail()}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerTitle className="sr-only">Day detail</DrawerTitle>
+          <div className="overflow-y-auto px-5 pb-8 pt-3">
+            {detailDay && <DayDetailBody day={detailDay} />}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
 
-  return <DayDetail selected={selected} />;
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && closeDetail()}>
+      <DialogContent className="max-h-[80vh] gap-0 overflow-y-auto sm:max-w-md">
+        <DialogTitle className="sr-only">Day detail</DialogTitle>
+        {detailDay && <DayDetailBody day={detailDay} />}
+      </DialogContent>
+    </Dialog>
+  );
 }
 
-function DayDetail({ selected }: { selected: string }) {
+function DayDetailBody({ day }: { day: string }) {
   const { data, totals } = useDash();
-  const rows = useMemo(() => (data ? dayRows(data, selected) : []), [data, selected]);
-  const t = totals.get(selected);
+  const rows = useMemo(() => (data ? dayRows(data, day) : []), [data, day]);
+  const t = totals.get(day);
   const dayPnl = t?.pnl ?? 0;
   if (!data) return null;
 
   return (
     <>
       <h3 className="text-[10px] font-semibold tracking-wider text-muted-foreground">
-        {prettyDate(selected).toUpperCase()}
+        {prettyDate(day).toUpperCase()}
       </h3>
       <p className="mt-0.5 flex items-center gap-1 text-base font-bold">
         <TrendArrow tone={dayPnl} className="size-3.5" />
@@ -1100,7 +1121,7 @@ function groupFirstDay(g: SymbolGroup): string | undefined {
 }
 
 export function TickerBreakdown() {
-  const { data, setSelected } = useDash();
+  const { data, openDetail } = useDash();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("pnl");
   const [dir, setDir] = useState<SortDir>("desc");
@@ -1223,10 +1244,10 @@ export function TickerBreakdown() {
                     </p>
                     {firstDay && (
                       <button
-                        onClick={() => setSelected(firstDay)}
+                        onClick={() => openDetail(firstDay)}
                         className="text-xs text-muted-foreground hover:text-foreground hover:underline"
                       >
-                        Show on calendar →
+                        Open day →
                       </button>
                     )}
                   </div>

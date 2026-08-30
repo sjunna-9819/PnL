@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -28,8 +29,14 @@ type DashCtx = {
   setCursor: (d: Date) => void;
   view: View;
   setView: (v: View) => void;
+  /** The highlighted day on the calendar (does not open the popup on its own). */
   selected: string | null;
   setSelected: (d: string | null) => void;
+  /** The day whose detail popup is open, or null when closed. */
+  detailDay: string | null;
+  /** Highlight a day and open its detail popup. */
+  openDetail: (d: string) => void;
+  closeDetail: () => void;
   today: string;
   /** "YYYY-MM" in month view, "YYYY" in year view. */
   period: string;
@@ -60,7 +67,14 @@ export function DashProvider({
   const [cursor, setCursor] = useState(() => new Date());
   const [view, setView] = useState<View>("month");
   const [selected, setSelected] = useState<string | null>(null);
+  const [detailDay, setDetailDay] = useState<string | null>(null);
   const today = todayKey();
+
+  const openDetail = useCallback((d: string) => {
+    setSelected(d);
+    setDetailDay(d);
+  }, []);
+  const closeDetail = useCallback(() => setDetailDay(null), []);
 
   const totals = useMemo<Map<string, DayTotal>>(
     () => (data ? dailyTotals(data) : new Map()),
@@ -96,11 +110,26 @@ export function DashProvider({
       setView,
       selected,
       setSelected,
+      detailDay,
+      openDetail,
+      closeDetail,
       today,
       period,
       isCurrentPeriod,
     }),
-    [data, totals, cursor, view, selected, today, period, isCurrentPeriod],
+    [
+      data,
+      totals,
+      cursor,
+      view,
+      selected,
+      detailDay,
+      openDetail,
+      closeDetail,
+      today,
+      period,
+      isCurrentPeriod,
+    ],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

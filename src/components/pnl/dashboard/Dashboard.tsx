@@ -8,7 +8,7 @@ import { resetDashState, setDashState, useDashState } from "@/lib/dashboardStore
 import { DashProvider } from "./context";
 import { appendRect, compact, GridLayout, type GridItem } from "./grid";
 import { MIN_SIZES, WIDGET_BY_ID, WIDGETS } from "./registry";
-import { ImportDropzone } from "./parts";
+import { DayDetailDialog, ImportDropzone } from "./parts";
 import type { Rect, WidgetId } from "./types";
 
 const ALL_IDS = WIDGETS.map((w) => w.id);
@@ -163,6 +163,7 @@ export function Dashboard({ initialDay }: { initialDay?: string | undefined }) {
           />
         )}
       </div>
+      <DayDetailDialog />
     </DashProvider>
   );
 }

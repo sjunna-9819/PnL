@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DashProvider } from "@/components/pnl/dashboard/context";
-import { TickerBreakdown } from "@/components/pnl/dashboard/parts";
+import { DayDetailDialog, TickerBreakdown } from "@/components/pnl/dashboard/parts";
 
 const title = "Ticker P&L — Profit and Loss by Symbol and Contract";
 const description =
@@ -32,6 +32,7 @@ function TickersPage() {
         <div className="mt-6 h-[72vh] rounded-xl bg-card p-4">
           <DashProvider>
             <TickerBreakdown />
+            <DayDetailDialog />
           </DashProvider>
         </div>
       </div>

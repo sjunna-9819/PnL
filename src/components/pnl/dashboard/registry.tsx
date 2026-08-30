@@ -6,13 +6,12 @@ import {
   LineChart,
   ListTree,
   NotebookPen,
-  PanelRightOpen,
+  SlidersHorizontal,
 } from "lucide-react";
 import type { Rect, WidgetId } from "./types";
 import type { MinSize } from "./grid";
 import {
   CalendarView,
-  DayDetailView,
   EquityWidget,
   JournalReview,
   MetricsGrid,
@@ -37,7 +36,7 @@ export const WIDGETS: WidgetDef[] = [
   {
     id: "periodNav",
     title: "Period",
-    icon: PanelRightOpen,
+    icon: SlidersHorizontal,
     Component: PeriodNav,
     min: { w: 4, h: 1 },
     default: { x: 0, y: 0, w: 12, h: 1 },
@@ -56,15 +55,7 @@ export const WIDGETS: WidgetDef[] = [
     icon: CalendarDays,
     Component: CalendarView,
     min: { w: 4, h: 4 },
-    default: { x: 0, y: 3, w: 8, h: 6 },
-  },
-  {
-    id: "dayDetail",
-    title: "Day detail",
-    icon: PanelRightOpen,
-    Component: DayDetailView,
-    min: { w: 3, h: 3 },
-    default: { x: 8, y: 3, w: 4, h: 6 },
+    default: { x: 0, y: 3, w: 8, h: 7 },
   },
   {
     id: "equity",
@@ -72,7 +63,7 @@ export const WIDGETS: WidgetDef[] = [
     icon: LineChart,
     Component: EquityWidget,
     min: { w: 3, h: 2 },
-    default: { x: 0, y: 9, w: 5, h: 3 },
+    default: { x: 8, y: 3, w: 4, h: 4 },
   },
   {
     id: "metrics",
@@ -80,7 +71,7 @@ export const WIDGETS: WidgetDef[] = [
     icon: LayoutGrid,
     Component: MetricsGrid,
     min: { w: 4, h: 2 },
-    default: { x: 5, y: 9, w: 7, h: 3 },
+    default: { x: 8, y: 7, w: 4, h: 3 },
   },
   {
     id: "tickers",
@@ -88,7 +79,7 @@ export const WIDGETS: WidgetDef[] = [
     icon: ListTree,
     Component: TickerBreakdown,
     min: { w: 4, h: 4 },
-    default: { x: 0, y: 12, w: 6, h: 6 },
+    default: { x: 0, y: 10, w: 6, h: 6 },
   },
   {
     id: "journal",
@@ -96,7 +87,7 @@ export const WIDGETS: WidgetDef[] = [
     icon: NotebookPen,
     Component: JournalReview,
     min: { w: 4, h: 4 },
-    default: { x: 6, y: 12, w: 6, h: 6 },
+    default: { x: 6, y: 10, w: 6, h: 6 },
   },
 ];
 
