@@ -34,6 +34,7 @@ import { loadDemoFiles, setPrincipal, usePrincipal } from "@/lib/pnlStore";
 import { DEMO_FILE_NAME, demoFills } from "@/lib/demoData";
 import { importStatements } from "@/lib/import";
 import { analyze, journal, type Post, type PostTone } from "@/lib/blog";
+import { dailyDigest, type DigestTone } from "@/lib/digest";
 import {
   removeBenchmark,
   setBenchmark,
@@ -609,6 +610,75 @@ function StatusChip({
     >
       {label}
     </span>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ *  Daily digest                                                       *
+ * ------------------------------------------------------------------ */
+
+const digestDot: Record<DigestTone, string> = {
+  good: "bg-profit",
+  bad: "bg-loss",
+  neutral: "bg-muted-foreground",
+};
+
+export function DailyDigestWidget() {
+  const { data, totals, selected, today, openDetail } = useDash();
+
+  const day = useMemo(() => {
+    if (selected) return selected;
+    const dates = [...totals.keys()].sort();
+    return dates.at(-1) ?? today;
+  }, [selected, totals, today]);
+
+  const digest = useMemo(() => (data ? dailyDigest(data, day, totals) : null), [data, day, totals]);
+
+  if (!data || !digest) {
+    return (
+      <NeedsData>
+        Import a statement — the digest writes itself for whatever day you pick.
+      </NeedsData>
+    );
+  }
+
+  const tone =
+    digest.mood === "green"
+      ? "text-profit"
+      : digest.mood === "red"
+        ? "text-loss"
+        : "text-foreground";
+
+  return (
+    <div className="flex h-full flex-col">
+      <button
+        onClick={() => openDetail(day)}
+        className="group -mx-1 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-secondary/30"
+        title="Open the full day breakdown"
+      >
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {prettyDate(day)}
+          {day === today && " · today"}
+        </p>
+        <p className={cn("mt-0.5 text-sm font-semibold leading-snug", tone)}>{digest.headline}</p>
+      </button>
+
+      <ul className="mt-3 space-y-2 overflow-auto">
+        {digest.lines.map((line, i) => (
+          <li key={i} className="flex gap-2 text-xs leading-relaxed">
+            <span
+              className={cn("mt-1.5 size-1.5 shrink-0 rounded-full", digestDot[line.tone])}
+              aria-hidden
+            />
+            <span className="text-foreground/90">{line.text}</span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-auto pt-2 text-[10px] text-muted-foreground">
+        Auto-written from this day&apos;s fills. Pick another day on the calendar to refresh.
+      </p>
+    </div>
   );
 }
 
