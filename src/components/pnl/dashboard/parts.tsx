@@ -35,7 +35,6 @@ import { DEMO_FILE_NAME, demoFills } from "@/lib/demoData";
 import { importStatements } from "@/lib/import";
 import { analyze, journal, type Post, type PostTone } from "@/lib/blog";
 import { dailyDigest, type DigestTone } from "@/lib/digest";
-import { useCoachReview, type CoachState } from "@/lib/coachStore";
 import {
   removeBenchmark,
   setBenchmark,
@@ -1433,90 +1432,29 @@ function gradeClass(grade: string) {
 
 export function JournalReview() {
   const { data } = useDash();
-  const coach = useCoachReview(data);
-  const heuristicPosts = useMemo(() => (data ? journal(data) : []), [data]);
+  const posts = useMemo(() => (data ? journal(data) : []), [data]);
 
-  if (heuristicPosts.length === 0) {
+  if (posts.length === 0) {
     return (
       <NeedsData>Import a statement (or load the demo) and the review writes itself.</NeedsData>
     );
   }
 
-  const reviewDate = heuristicPosts.find((p) => p.id === "review")?.date ?? heuristicPosts[0]!.date;
-
-  // When Claude has weighed in, its review replaces the heuristic one at the top;
-  // otherwise the heuristic review stays and we surface why (loading / no key).
-  const posts: Post[] =
-    coach.status === "ready"
-      ? [
-          {
-            id: "claude-review",
-            date: reviewDate,
-            title: "Coach's review",
-            grade: coach.review.grade,
-            score: coach.review.score,
-            summary: coach.review.summary,
-            sections: coach.review.sections,
-          },
-          ...heuristicPosts.filter((p) => p.id !== "review"),
-        ]
-      : heuristicPosts;
-
   return (
     <div className="h-full space-y-4 overflow-auto">
-      <CoachStatusLine coach={coach} />
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} byClaude={post.id === "claude-review"} />
+        <PostCard key={post.id} post={post} />
       ))}
     </div>
   );
 }
 
-function CoachStatusLine({ coach }: { coach: CoachState }) {
-  if (coach.status === "loading") {
-    return (
-      <p className="flex items-center gap-2 rounded-lg bg-secondary/30 px-3 py-2 text-[11px] text-muted-foreground">
-        <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-        Claude is reading your trades…
-      </p>
-    );
-  }
-  if (coach.status === "no-key") {
-    return (
-      <p className="rounded-lg bg-secondary/30 px-3 py-2 text-[11px] text-muted-foreground">
-        Set <code className="text-foreground">ANTHROPIC_API_KEY</code> on the server for a
-        Claude-written review. Showing the built-in one.
-      </p>
-    );
-  }
-  if (coach.status === "error") {
-    return (
-      <p className="rounded-lg bg-loss/10 px-3 py-2 text-[11px] text-loss">
-        Claude review failed: {coach.message}. Showing the built-in one.
-      </p>
-    );
-  }
-  return null;
-}
-
-function PostCard({ post, byClaude = false }: { post: Post; byClaude?: boolean }) {
+function PostCard({ post }: { post: Post }) {
   return (
-    <article
-      className={cn(
-        "rounded-xl p-4",
-        byClaude ? "bg-primary/5 ring-1 ring-primary/20" : "bg-secondary/20",
-      )}
-    >
+    <article className="rounded-xl bg-secondary/20 p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="flex items-center gap-1.5 text-base font-semibold tracking-tight">
-            {post.title}
-            {byClaude && (
-              <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-primary">
-                ✦ Claude
-              </span>
-            )}
-          </h2>
+          <h2 className="text-base font-semibold tracking-tight">{post.title}</h2>
           <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
             {prettyDate(post.date)}
           </p>
