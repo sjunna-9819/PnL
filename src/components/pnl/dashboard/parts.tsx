@@ -1425,9 +1425,6 @@ export function TickerBreakdown() {
         {visible.map((g) => {
           const isOpen = open.has(g.symbol);
           const firstDay = groupFirstDay(g);
-          const barPct = Math.max((Math.abs(g.pnl) / maxAbs) * 100, 4);
-          const labelInside = barPct >= 34;
-          const label = g.pnl === 0 ? "—" : fmtMoney(g.pnl);
           return (
             <div key={g.symbol}>
               <button
@@ -1441,36 +1438,21 @@ export function TickerBreakdown() {
                     isOpen && "rotate-90",
                   )}
                 />
-                <span className="w-12 shrink-0 truncate text-sm font-semibold">{g.symbol}</span>
+                <span className="w-14 shrink-0 text-sm font-semibold">{g.symbol}</span>
                 <span className="relative h-6 flex-1">
                   <span
                     className={cn(
-                      "absolute inset-y-0 left-0 flex items-center justify-end rounded pr-1.5",
+                      "absolute inset-y-0 left-0 flex items-center justify-end rounded pr-2",
                       g.pnl > 0 && "bg-profit",
                       g.pnl < 0 && "bg-loss",
-                      g.pnl === 0 && "bg-muted-foreground/30",
+                      g.pnl === 0 && "bg-secondary",
                     )}
-                    style={{ width: `${barPct}%` }}
+                    style={{ width: `${Math.max((Math.abs(g.pnl) / maxAbs) * 100, 16)}%` }}
                   >
-                    {labelInside && (
-                      <span className="whitespace-nowrap text-xs font-bold tabular-nums text-background">
-                        {label}
-                      </span>
-                    )}
-                  </span>
-                  {!labelInside && (
-                    <span
-                      className={cn(
-                        "absolute inset-y-0 flex items-center whitespace-nowrap pl-1.5 text-xs font-bold tabular-nums",
-                        g.pnl > 0 && "text-profit",
-                        g.pnl < 0 && "text-loss",
-                        g.pnl === 0 && "text-muted-foreground",
-                      )}
-                      style={{ left: `${barPct}%` }}
-                    >
-                      {label}
+                    <span className="whitespace-nowrap text-xs font-bold tabular-nums text-background">
+                      {fmtMoney(g.pnl)}
                     </span>
-                  )}
+                  </span>
                 </span>
               </button>
 
