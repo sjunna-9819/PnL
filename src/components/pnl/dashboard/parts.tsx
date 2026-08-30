@@ -1449,7 +1449,7 @@ export function TickerBreakdown() {
                     )}
                     style={{ width: `${Math.max((Math.abs(g.pnl) / maxAbs) * 100, 16)}%` }}
                   >
-                    <span className="whitespace-nowrap text-xs font-bold tabular-nums text-background">
+                    <span className="whitespace-nowrap text-[10px] font-bold tabular-nums text-background">
                       {fmtMoney(g.pnl)}
                     </span>
                   </span>
