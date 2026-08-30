@@ -28,16 +28,14 @@ function currentBlob(): string {
   });
 }
 
+function isEmptyState(): boolean {
+  return snapshotState().files.length === 0 && Object.keys(snapshotBenchmarks()).length === 0;
+}
+
 function scheduleSave() {
   if (!ready) return;
   if (timer) clearTimeout(timer);
   timer = setTimeout(() => {
-    // A genuinely-empty client must never overwrite the server file — this is
-    // what a fresh page looks like for the first moment after load, and it
-    // would clobber another device's journal (or race the inbox importer).
-    if (snapshotState().files.length === 0 && Object.keys(snapshotBenchmarks()).length === 0) {
-      return;
-    }
     const blob = currentBlob();
     if (blob === lastSent) return;
     lastSent = blob;
@@ -81,7 +79,12 @@ export function useCloudSync() {
       if (!alive) return;
       unsubs.push(subscribeStore(scheduleSave));
       unsubs.push(subscribeBenchmarks(scheduleSave));
-      scheduleSave(); // push local data up on a fresh server file
+      // Push local data up on a fresh server file — but never push an empty
+      // client on load: that only ever means "nothing imported yet" or "the
+      // inbox importer hasn't run this poll", and it would clobber the server
+      // (or another device). A deliberate Clear still pushes, via the
+      // subscription above.
+      if (!isEmptyState()) scheduleSave();
     })();
 
     return () => {
