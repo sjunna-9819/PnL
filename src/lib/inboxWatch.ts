@@ -2,14 +2,12 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 
 import { syncInbox } from "@/lib/inbox";
-import { hydrateState } from "@/lib/pnlStore";
-import { hydrateBenchmarks } from "@/lib/benchmarks";
+import { mergeAutoImportFills } from "@/lib/pnlStore";
 
 /**
- * Polls the server's watch-folder (see `inbox.ts`) on an interval. When a new
- * CSV has been folded into the journal, hydrate the store from the returned
- * snapshot so the open page updates without a refresh. Silently no-ops when the
- * app isn't served by a Node server.
+ * Polls the server's watch folder (see `inbox.ts`). New fills are folded into
+ * the store; the existing cloud-sync then persists the change. Silently no-ops
+ * when the app isn't served by a Node server.
  */
 const POLL_MS = 6000;
 
@@ -18,11 +16,6 @@ export function useInboxWatch() {
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
-    const loop = async () => {
-      await tick();
-      if (alive) timer = setTimeout(() => void loop(), POLL_MS);
-    };
-
     const tick = async () => {
       let res;
       try {
@@ -30,26 +23,17 @@ export function useInboxWatch() {
       } catch {
         return; // offline / static host / aborted request
       }
-      if (!alive || !res.changed || !res.blob) return;
+      if (!alive || res.fills.length === 0) return;
 
-      const parsed = JSON.parse(res.blob) as {
-        files?: Parameters<typeof hydrateState>[0]["files"];
-        commissions?: Parameters<typeof hydrateState>[0]["commissions"];
-        principal?: number;
-        benchmarks?: Record<string, { date: string; close: number }[]>;
-      };
-      hydrateState({
-        files: parsed.files ?? [],
-        ...(parsed.commissions ? { commissions: parsed.commissions } : {}),
-        ...(typeof parsed.principal === "number" ? { principal: parsed.principal } : {}),
-      });
-      hydrateBenchmarks(parsed.benchmarks ?? {});
-
-      if (res.fills > 0) {
-        toast.success(
-          `Imported ${res.fills} new fill${res.fills === 1 ? "" : "s"} from the inbox folder`,
-        );
+      const added = mergeAutoImportFills(res.fills);
+      if (added > 0) {
+        toast.success(`Imported ${added} new fill${added === 1 ? "" : "s"} from the inbox folder`);
       }
+    };
+
+    const loop = async () => {
+      await tick();
+      if (alive) timer = setTimeout(() => void loop(), POLL_MS);
     };
 
     void loop();

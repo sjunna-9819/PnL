@@ -199,6 +199,40 @@ export function addImportedFiles(incoming: ImportedFile[]): Dataset | null {
   return dataset;
 }
 
+/** The watch-folder import lives in one file entry, merged and deduped. */
+export const AUTO_IMPORT_NAME = "TOS auto-import";
+const fillId = (f: Fill) => `${f.ts}|${f.label}|${f.qty}|${f.price}|${f.posEffect}`;
+
+/**
+ * Fold fills from the watch folder into the single `AUTO_IMPORT_NAME` file,
+ * deduping by execution identity so overlapping daily exports are safe. Returns
+ * how many were actually new.
+ */
+export function mergeAutoImportFills(incoming: Fill[]): number {
+  load();
+  const idx = files.findIndex((f) => f.name === AUTO_IMPORT_NAME);
+  const existing = idx >= 0 ? files[idx]!.fills : [];
+  const seen = new Set(existing.map(fillId));
+  const added: Fill[] = [];
+  for (const f of incoming) {
+    const k = fillId(f);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    added.push(f);
+  }
+  if (added.length === 0) return 0;
+
+  const entry: ImportedFile = {
+    name: AUTO_IMPORT_NAME,
+    fills: [...existing, ...added].sort((a, b) => a.ts - b.ts),
+    official: new Map(),
+  };
+  files = idx >= 0 ? files.map((f, i) => (i === idx ? entry : f)) : [...files, entry];
+  loaded = true;
+  commit();
+  return added.length;
+}
+
 /** The most recently removed file, kept so a single deletion can be undone. */
 let lastRemoved: { file: ImportedFile; index: number } | null = null;
 

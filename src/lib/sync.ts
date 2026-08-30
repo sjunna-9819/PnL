@@ -32,6 +32,12 @@ function scheduleSave() {
   if (!ready) return;
   if (timer) clearTimeout(timer);
   timer = setTimeout(() => {
+    // A genuinely-empty client must never overwrite the server file — this is
+    // what a fresh page looks like for the first moment after load, and it
+    // would clobber another device's journal (or race the inbox importer).
+    if (snapshotState().files.length === 0 && Object.keys(snapshotBenchmarks()).length === 0) {
+      return;
+    }
     const blob = currentBlob();
     if (blob === lastSent) return;
     lastSent = blob;
