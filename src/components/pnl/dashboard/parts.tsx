@@ -1007,7 +1007,41 @@ function EquityCurveFull({ totals }: { totals: Map<string, DayTotal> }) {
   );
 }
 
-export function EquityWidget() {
+/** One widget, two views: the equity curve or the per-ticker P&L breakdown. */
+export function MarketWidget() {
+  const [tab, setTab] = useState<"equity" | "tickers">("equity");
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="mb-2 flex shrink-0 items-center gap-0.5 self-start rounded-lg bg-secondary/50 p-0.5">
+        {(
+          [
+            ["equity", "Equity curve"],
+            ["tickers", "Ticker P&L"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={cn(
+              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              tab === key
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="min-h-0 flex-1">
+        {tab === "equity" ? <EquityPane /> : <TickerBreakdown />}
+      </div>
+    </div>
+  );
+}
+
+function EquityPane() {
   const { data, totals } = useDash();
   const [open, setOpen] = useState(false);
   const net = useMemo(() => [...totals.values()].reduce((s, v) => s + v.pnl, 0), [totals]);

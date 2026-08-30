@@ -7,7 +7,8 @@ import type { Rect, WidgetId } from "@/components/pnl/dashboard/types";
  * toggling one back on restores it where it was.
  */
 // v2: day detail became a click-to-open popup instead of a grid widget.
-const KEY = "pnl-dashboard-v2";
+// v3: ticker P&L folded into the equity widget as a switchable view.
+const KEY = "pnl-dashboard-v3";
 
 export type DashState = {
   rects: Partial<Record<WidgetId, Rect>>;

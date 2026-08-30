@@ -4,7 +4,6 @@ import {
   GaugeCircle,
   LayoutGrid,
   LineChart,
-  ListTree,
   NotebookPen,
   SlidersHorizontal,
 } from "lucide-react";
@@ -12,12 +11,11 @@ import type { Rect, WidgetId } from "./types";
 import type { MinSize } from "./grid";
 import {
   CalendarView,
-  EquityWidget,
   JournalReview,
+  MarketWidget,
   MetricsGrid,
   PeriodNav,
   SummaryStats,
-  TickerBreakdown,
 } from "./parts";
 
 export type WidgetDef = {
@@ -59,11 +57,11 @@ export const WIDGETS: WidgetDef[] = [
   },
   {
     id: "equity",
-    title: "Equity curve",
+    title: "Equity / Tickers",
     icon: LineChart,
-    Component: EquityWidget,
-    min: { w: 3, h: 2 },
-    default: { x: 8, y: 3, w: 4, h: 4 },
+    Component: MarketWidget,
+    min: { w: 4, h: 4 },
+    default: { x: 8, y: 3, w: 4, h: 7 },
   },
   {
     id: "metrics",
@@ -71,15 +69,7 @@ export const WIDGETS: WidgetDef[] = [
     icon: LayoutGrid,
     Component: MetricsGrid,
     min: { w: 4, h: 2 },
-    default: { x: 8, y: 7, w: 4, h: 3 },
-  },
-  {
-    id: "tickers",
-    title: "Ticker P&L",
-    icon: ListTree,
-    Component: TickerBreakdown,
-    min: { w: 4, h: 4 },
-    default: { x: 0, y: 10, w: 6, h: 6 },
+    default: { x: 0, y: 10, w: 8, h: 3 },
   },
   {
     id: "journal",
@@ -87,7 +77,7 @@ export const WIDGETS: WidgetDef[] = [
     icon: NotebookPen,
     Component: JournalReview,
     min: { w: 4, h: 4 },
-    default: { x: 6, y: 10, w: 6, h: 6 },
+    default: { x: 8, y: 10, w: 4, h: 7 },
   },
 ];
 
