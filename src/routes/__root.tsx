@@ -13,7 +13,6 @@ import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { NavBar } from "@/components/pnl/NavBar";
 import { useCloudSync } from "@/lib/sync";
-import { useInboxWatch } from "@/lib/inboxWatch";
 
 function NotFoundComponent() {
   return (
@@ -122,7 +121,6 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useCloudSync();
-  useInboxWatch();
 
   return (
     <QueryClientProvider client={queryClient}>

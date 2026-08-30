@@ -80,10 +80,9 @@ export function useCloudSync() {
       unsubs.push(subscribeStore(scheduleSave));
       unsubs.push(subscribeBenchmarks(scheduleSave));
       // Push local data up on a fresh server file — but never push an empty
-      // client on load: that only ever means "nothing imported yet" or "the
-      // inbox importer hasn't run this poll", and it would clobber the server
-      // (or another device). A deliberate Clear still pushes, via the
-      // subscription above.
+      // client on load. That just means "nothing imported yet", and pushing it
+      // would wipe another device's journal. A deliberate Clear still pushes,
+      // via the subscription above.
       if (!isEmptyState()) scheduleSave();
     })();
 
