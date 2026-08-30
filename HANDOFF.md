@@ -87,6 +87,13 @@ milestones:
 - When served by Node, the entire journal is mirrored to `~/.pnl-calendar/state.json`
   (override with `PNL_DATA_DIR`) so a laptop and a phone share one journal.
 
+**Watch-folder import** (`src/lib/inbox.ts`, `src/lib/inboxWatch.ts`)
+- The server watches `~/.pnl-calendar/inbox/` (override with `PNL_INBOX_DIR`). Drop a
+  broker "Account Statement" CSV there — from a manual download or a cron script — and
+  within ~6s it is parsed, deduped by execution identity against everything already
+  imported, folded into the journal, and moved to `inbox/processed/`. The open page
+  updates without a refresh. Overlapping daily exports are safe. Node-server only.
+
 **Latest change — lucky-charm totem** (`src/components/pnl/LuckyCharm.tsx`, `src/lib/quotes.ts`)
 - A nimbu-mirchi (lemon + three chilies) charm hanging off the right of the nav bar with a
   pull-cord. Drag the bead down like a light switch and release — it recoils and a random
@@ -107,9 +114,9 @@ npm run preview  # serve the production build
 npm run lint
 ```
 
-No environment variables are required. The Yahoo index pull and the cross-device mirror
-both work out of the box when run via the Node server; `PNL_DATA_DIR` optionally
-relocates the mirror file.
+No environment variables are required. The Yahoo index pull, the cross-device mirror
+and the watch-folder import all work out of the box when run via the Node server.
+`PNL_DATA_DIR` relocates the mirror file; `PNL_INBOX_DIR` relocates the watch folder.
 
 ---
 
