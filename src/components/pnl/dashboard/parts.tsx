@@ -1438,21 +1438,27 @@ export function TickerBreakdown() {
                     isOpen && "rotate-90",
                   )}
                 />
-                <span className="w-14 shrink-0 text-sm font-semibold">{g.symbol}</span>
-                <span className="relative h-6 flex-1">
+                <span className="w-12 shrink-0 truncate text-sm font-semibold">{g.symbol}</span>
+                <span className="relative h-2 min-w-8 flex-1 overflow-hidden rounded-full bg-secondary/50">
                   <span
                     className={cn(
-                      "absolute inset-y-0 left-0 flex items-center justify-end rounded pr-2",
+                      "absolute inset-y-0 left-0 rounded-full",
                       g.pnl > 0 && "bg-profit",
                       g.pnl < 0 && "bg-loss",
-                      g.pnl === 0 && "bg-secondary",
+                      g.pnl === 0 && "bg-muted-foreground/40",
                     )}
-                    style={{ width: `${Math.max((Math.abs(g.pnl) / maxAbs) * 100, 16)}%` }}
-                  >
-                    <span className="whitespace-nowrap text-xs font-bold tabular-nums text-background">
-                      {fmtMoney(g.pnl)}
-                    </span>
-                  </span>
+                    style={{ width: `${Math.max((Math.abs(g.pnl) / maxAbs) * 100, 3)}%` }}
+                  />
+                </span>
+                <span
+                  className={cn(
+                    "w-24 shrink-0 whitespace-nowrap text-right text-[11px] font-bold tabular-nums",
+                    g.pnl > 0 && "text-profit",
+                    g.pnl < 0 && "text-loss",
+                    g.pnl === 0 && "text-muted-foreground",
+                  )}
+                >
+                  {g.pnl === 0 ? "—" : fmtMoney(g.pnl)}
                 </span>
               </button>
 
