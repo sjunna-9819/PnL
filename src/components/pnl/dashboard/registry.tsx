@@ -32,62 +32,75 @@ export type WidgetDef = {
   hiddenByDefault?: boolean;
 };
 
+/**
+ * Defaults below are written in the old coarse 12-column units; the grid now
+ * runs on a 4x-finer ~quarter-inch grid (grid.tsx COLS = 48), so scale up.
+ */
+const S = 4;
+const rect = (x: number, y: number, w: number, h: number): Rect => ({
+  x: x * S,
+  y: y * S,
+  w: w * S,
+  h: h * S,
+});
+const min = (w: number, h: number): MinSize => ({ w: w * S, h: h * S });
+
 export const WIDGETS: WidgetDef[] = [
   {
     id: "periodNav",
     title: "Period",
     icon: SlidersHorizontal,
     Component: PeriodNav,
-    min: { w: 4, h: 1 },
-    default: { x: 0, y: 0, w: 12, h: 1 },
+    min: min(4, 1),
+    default: rect(0, 0, 12, 1),
   },
   {
     id: "summary",
     title: "Period summary",
     icon: GaugeCircle,
     Component: SummaryStats,
-    min: { w: 3, h: 1 },
-    default: { x: 0, y: 1, w: 12, h: 2 },
+    min: min(3, 1),
+    default: rect(0, 1, 12, 2),
   },
   {
     id: "digest",
     title: "Daily digest",
     icon: ScrollText,
     Component: DailyDigestWidget,
-    min: { w: 2, h: 4 },
-    default: { x: 0, y: 3, w: 3, h: 7 },
+    min: min(2, 4),
+    default: rect(0, 3, 3, 7),
   },
   {
     id: "calendar",
     title: "Calendar",
     icon: CalendarDays,
     Component: CalendarView,
-    min: { w: 4, h: 4 },
-    default: { x: 3, y: 3, w: 6, h: 7 },
+    min: min(4, 4),
+    default: rect(3, 3, 6, 7),
   },
   {
     id: "equity",
     title: "Equity / Tickers",
     icon: LineChart,
     Component: MarketWidget,
-    min: { w: 3, h: 4 },
-    default: { x: 9, y: 3, w: 3, h: 7 },
+    min: min(3, 4),
+    default: rect(9, 3, 3, 7),
   },
   {
     id: "metrics",
     title: "Metrics",
     icon: LayoutGrid,
     Component: MetricsGrid,
-    min: { w: 4, h: 2 },
-    default: { x: 0, y: 10, w: 7, h: 3 },
+    min: min(4, 2),
+    default: rect(0, 10, 7, 3),
   },
   {
     id: "journal",
     title: "Journal review",
     icon: NotebookPen,
     Component: JournalReview,
-    min: { w: 4, h: 4 },
-    default: { x: 7, y: 10, w: 5, h: 7 },
+    min: min(4, 4),
+    default: rect(7, 10, 5, 7),
   },
 ];
 

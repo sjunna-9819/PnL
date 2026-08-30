@@ -3,9 +3,11 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Rect } from "./types";
 
-export const COLS = 12;
-const ROW_H = 76;
-const GAP = 12;
+// Fine grid: ~quarter-inch cells so widgets can be nudged instead of jumping a
+// whole column/row. One "coarse" unit from before = 4 of these.
+export const COLS = 48;
+const ROW_H = 18;
+const GAP = 6;
 
 export type GridItem = { id: string; rect: Rect };
 export type MinSize = { w: number; h: number };
@@ -48,7 +50,7 @@ export function compact(items: GridItem[], pinId?: string): GridItem[] {
 /** Next free spot for a freshly added widget: a full-width row at the bottom. */
 export function appendRect(items: GridItem[], size: MinSize): Rect {
   const bottom = items.reduce((m, i) => Math.max(m, i.rect.y + i.rect.h), 0);
-  return { x: 0, y: bottom, w: Math.min(Math.max(size.w, 4), COLS), h: size.h };
+  return { x: 0, y: bottom, w: Math.min(Math.max(size.w, 16), COLS), h: size.h };
 }
 
 export function GridLayout({
