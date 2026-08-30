@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 
 import { syncInbox } from "@/lib/inbox";
-import { mergeAutoImportFills } from "@/lib/pnlStore";
+import { mergeInboxFiles } from "@/lib/pnlStore";
 
 /**
  * Polls the server's watch folder (see `inbox.ts`). New fills are folded into
@@ -23,9 +23,9 @@ export function useInboxWatch() {
       } catch {
         return; // offline / static host / aborted request
       }
-      if (!alive || res.fills.length === 0) return;
+      if (!alive || res.files.length === 0) return;
 
-      const added = mergeAutoImportFills(res.fills);
+      const added = mergeInboxFiles(res.files);
       if (added > 0) {
         toast.success(`Imported ${added} new fill${added === 1 ? "" : "s"} from the inbox folder`);
       }

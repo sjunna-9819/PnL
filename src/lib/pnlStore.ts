@@ -82,13 +82,30 @@ function emit() {
   for (const l of listeners) l();
 }
 
+/** One execution's identity — used to drop duplicates from overlapping statements. */
+const fillId = (f: Fill) => `${f.ts}|${f.label}|${f.qty}|${f.price}|${f.posEffect}`;
+
+/** All fills across the imported files, with duplicate executions removed. */
+function dedupedFills(list: ImportedFile[]): Fill[] {
+  const seen = new Set<string>();
+  const out: Fill[] = [];
+  for (const f of list) {
+    for (const fill of f.fills) {
+      const id = fillId(fill);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push(fill);
+    }
+  }
+  return out;
+}
+
 function deriveDataset(list: ImportedFile[]): Dataset | null {
   if (list.length === 0) return null;
-  const allFills = list.flatMap((f) => f.fills);
   const names = list.map((f) => f.name);
   const official = new Map<string, Map<string, number>>();
   for (const f of list) for (const [d, rows] of f.official) official.set(d, new Map(rows));
-  return buildDataset(allFills, names, official, loadCommissions());
+  return buildDataset(dedupedFills(list), names, official, loadCommissions());
 }
 
 function summarize(list: ImportedFile[]): FileSummary[] {
@@ -199,38 +216,45 @@ export function addImportedFiles(incoming: ImportedFile[]): Dataset | null {
   return dataset;
 }
 
-/** The watch-folder import lives in one file entry, merged and deduped. */
-export const AUTO_IMPORT_NAME = "TOS auto-import";
-const fillId = (f: Fill) => `${f.ts}|${f.label}|${f.qty}|${f.price}|${f.posEffect}`;
+/** Pre-2026-08 the watch folder folded everything into one synthetic entry. */
+const LEGACY_AUTO_IMPORT_NAME = "TOS auto-import";
 
 /**
- * Fold fills from the watch folder into the single `AUTO_IMPORT_NAME` file,
- * deduping by execution identity so overlapping daily exports are safe. Returns
- * how many were actually new.
+ * Fold watch-folder CSVs into the store — one file entry per original filename,
+ * replacing any existing entry of the same name (so re-dropping or re-parsing a
+ * file never doubles it up). Duplicate executions across overlapping statements
+ * are dropped when the dataset is built (`dedupedFills`). Returns how many fills
+ * were genuinely new to the journal.
  */
-export function mergeAutoImportFills(incoming: Fill[]): number {
+export function mergeInboxFiles(incoming: { name: string; fills: Fill[] }[]): number {
   load();
-  const idx = files.findIndex((f) => f.name === AUTO_IMPORT_NAME);
-  const existing = idx >= 0 ? files[idx]!.fills : [];
-  const seen = new Set(existing.map(fillId));
-  const added: Fill[] = [];
-  for (const f of incoming) {
-    const k = fillId(f);
-    if (seen.has(k)) continue;
-    seen.add(k);
-    added.push(f);
-  }
-  if (added.length === 0) return 0;
 
-  const entry: ImportedFile = {
-    name: AUTO_IMPORT_NAME,
-    fills: [...existing, ...added].sort((a, b) => a.ts - b.ts),
-    official: new Map(),
-  };
-  files = idx >= 0 ? files.map((f, i) => (i === idx ? entry : f)) : [...files, entry];
+  const hasLegacy = files.some((f) => f.name === LEGACY_AUTO_IMPORT_NAME);
+  const unchanged =
+    !hasLegacy &&
+    incoming.every((inc) => {
+      const e = files.find((f) => f.name === inc.name);
+      return e && e.fills.length === inc.fills.length;
+    });
+  if (unchanged) return 0;
+
+  const before = dedupedFills(files).length;
+
+  let next = files.filter((f) => f.name !== LEGACY_AUTO_IMPORT_NAME);
+  for (const inc of incoming) {
+    const entry: ImportedFile = {
+      name: inc.name,
+      fills: [...inc.fills].sort((a, b) => a.ts - b.ts),
+      official: new Map(),
+    };
+    const idx = next.findIndex((f) => f.name === inc.name);
+    next = idx >= 0 ? next.map((f, i) => (i === idx ? entry : f)) : [...next, entry];
+  }
+
+  files = next;
   loaded = true;
   commit();
-  return added.length;
+  return Math.max(0, dedupedFills(files).length - before);
 }
 
 /** The most recently removed file, kept so a single deletion can be undone. */

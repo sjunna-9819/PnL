@@ -31,10 +31,11 @@ async function nodeCtx() {
   return { fs, path, inbox, processed: path.join(inbox, "processed") };
 }
 
+export type InboxFile = { name: string; fills: Fill[] };
+
 export type InboxResult = {
-  fills: Fill[];
-  /** how many CSVs are currently in the folder (parsed this call) */
-  pending: number;
+  /** one entry per CSV currently in the folder, keyed by original filename */
+  files: InboxFile[];
   dir: string;
   error?: string;
 };
@@ -49,16 +50,17 @@ export const syncInbox = createServerFn({ method: "POST" })
 
       const entries = await fs.readdir(inbox);
       const csvs = entries.filter((n) => n.toLowerCase().endsWith(".csv")).sort();
-      if (csvs.length === 0) return { fills: [], pending: 0, dir: inbox };
+      if (csvs.length === 0) return { files: [], dir: inbox };
 
-      const fills: Fill[] = [];
+      const out: InboxFile[] = [];
       const now = Date.now();
       for (const name of csvs) {
         const src = path.join(inbox, name);
         try {
           const stat = await fs.stat(src);
           const text = await fs.readFile(src, "utf8");
-          fills.push(...parseStatement(text, name).fills);
+          const fills = parseStatement(text, name).fills;
+          if (fills.length > 0) out.push({ name, fills });
           if (now - stat.mtimeMs > SETTLE_MS) {
             const stamp = new Date().toISOString().replace(/[:.]/g, "-");
             await fs.rename(src, path.join(processed, `${stamp}__${name}`));
@@ -67,11 +69,10 @@ export const syncInbox = createServerFn({ method: "POST" })
           /* leave an unreadable file in place for next time */
         }
       }
-      return { fills, pending: csvs.length, dir: inbox };
+      return { files: out, dir: inbox };
     } catch (err) {
       return {
-        fills: [],
-        pending: 0,
+        files: [],
         dir: inbox,
         error: err instanceof Error ? err.message : String(err),
       };
