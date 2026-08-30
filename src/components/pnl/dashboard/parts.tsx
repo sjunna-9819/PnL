@@ -1425,6 +1425,9 @@ export function TickerBreakdown() {
         {visible.map((g) => {
           const isOpen = open.has(g.symbol);
           const firstDay = groupFirstDay(g);
+          const barPct = Math.max((Math.abs(g.pnl) / maxAbs) * 100, 4);
+          const labelInside = barPct >= 34;
+          const label = g.pnl === 0 ? "—" : fmtMoney(g.pnl);
           return (
             <div key={g.symbol}>
               <button
@@ -1439,26 +1442,35 @@ export function TickerBreakdown() {
                   )}
                 />
                 <span className="w-12 shrink-0 truncate text-sm font-semibold">{g.symbol}</span>
-                <span className="relative h-2 min-w-8 flex-1 overflow-hidden rounded-full bg-secondary/50">
+                <span className="relative h-6 flex-1">
                   <span
                     className={cn(
-                      "absolute inset-y-0 left-0 rounded-full",
+                      "absolute inset-y-0 left-0 flex items-center justify-end rounded pr-1.5",
                       g.pnl > 0 && "bg-profit",
                       g.pnl < 0 && "bg-loss",
-                      g.pnl === 0 && "bg-muted-foreground/40",
+                      g.pnl === 0 && "bg-muted-foreground/30",
                     )}
-                    style={{ width: `${Math.max((Math.abs(g.pnl) / maxAbs) * 100, 3)}%` }}
-                  />
-                </span>
-                <span
-                  className={cn(
-                    "w-24 shrink-0 whitespace-nowrap text-right text-[11px] font-bold tabular-nums",
-                    g.pnl > 0 && "text-profit",
-                    g.pnl < 0 && "text-loss",
-                    g.pnl === 0 && "text-muted-foreground",
+                    style={{ width: `${barPct}%` }}
+                  >
+                    {labelInside && (
+                      <span className="whitespace-nowrap text-xs font-bold tabular-nums text-background">
+                        {label}
+                      </span>
+                    )}
+                  </span>
+                  {!labelInside && (
+                    <span
+                      className={cn(
+                        "absolute inset-y-0 flex items-center whitespace-nowrap pl-1.5 text-xs font-bold tabular-nums",
+                        g.pnl > 0 && "text-profit",
+                        g.pnl < 0 && "text-loss",
+                        g.pnl === 0 && "text-muted-foreground",
+                      )}
+                      style={{ left: `${barPct}%` }}
+                    >
+                      {label}
+                    </span>
                   )}
-                >
-                  {g.pnl === 0 ? "—" : fmtMoney(g.pnl)}
                 </span>
               </button>
 
