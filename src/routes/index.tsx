@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PnlCalendar } from "@/components/pnl/PnlCalendar";
+import { Dashboard } from "@/components/pnl/dashboard/Dashboard";
 
-const title = "PnL Calendar — Daily Trading P&L from Broker CSVs";
+const title = "PnL Calendar — Modular Trading Dashboard from Broker CSVs";
 const description =
-  "Import broker CSV exports and see daily profit and loss on a calendar, with per-ticker results and open position status for each trading day.";
+  "Import broker CSV exports and arrange the calendar, equity curve, per-ticker P&L and an automated review as resizable widgets on one dashboard.";
 
 type IndexSearch = { day?: string };
 
@@ -26,8 +26,8 @@ export const Route = createFileRoute("/")({
 function Index() {
   const { day } = Route.useSearch();
   return (
-    <main className="min-h-[calc(100dvh-3.5rem)] bg-background text-foreground lg:h-[calc(100dvh-3.5rem)] lg:overflow-hidden">
-      <PnlCalendar initialDay={day} />
+    <main className="min-h-[calc(100dvh-3.5rem)] bg-background text-foreground">
+      <Dashboard initialDay={day} />
     </main>
   );
 }
