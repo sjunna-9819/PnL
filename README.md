@@ -1,5 +1,10 @@
 # PnL Calendar
 
+> **ARCHIVED — superseded by [`pnl-modular`](https://github.com/sjunna-9819/pnl-modular).**
+> This was the original build; active development has moved to the modular rewrite above.
+> Nothing here is deleted and the code still runs, but new features and fixes land there,
+> not here.
+
 A trading journal. Import broker CSV statements (built and tested against Thinkorswim / Schwab
 "Account Statement" exports) and get a monthly/yearly calendar of daily P&L, per-ticker
 breakdowns, an equity curve, and an automated review of your trading. No login — everything is
