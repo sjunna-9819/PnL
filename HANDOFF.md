@@ -1,5 +1,9 @@
 # PnL Calendar — Handoff / Overview
 
+> **ARCHIVED — superseded by [`pnl-modular`](https://github.com/sjunna-9819/pnl-modular).**
+> Active development has moved to the modular rewrite; treat this doc as a historical
+> record of the original build, not the current state of the project.
+
 A short, practical overview of **what this project is for** and **what has been built**.
 For the deep architecture write-up see [`PNL_CALENDAR_PROJECT.md`](./PNL_CALENDAR_PROJECT.md);
 for setup see [`README.md`](./README.md).
